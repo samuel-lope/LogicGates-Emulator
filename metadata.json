@@ -1,0 +1,5 @@
+{
+  "name": "LogicGateSim_Web",
+  "description": "A high-performance digital circuit simulator using React and HTML5 Canvas. Features real-time logic propagation, custom component rendering, and a zoomable infinite workspace.",
+  "requestFramePermissions": []
+}
