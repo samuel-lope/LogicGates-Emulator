@@ -234,7 +234,7 @@ const App: React.FC = () => {
       if (node.id !== nodeId) return node;
 
       const currentCount = node.inputs.length;
-      const newCount = Math.min(8, Math.max(2, currentCount + delta));
+      const newCount = Math.min(32, Math.max(2, currentCount + delta)); // Increased limit to 32
       
       if (newCount === currentCount) return node;
 

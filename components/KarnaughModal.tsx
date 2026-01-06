@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Wand2, RefreshCw } from 'lucide-react';
+import { X, Wand2, RefreshCw, Calculator } from 'lucide-react';
+import { solveQuineMcCluskey, termsToEquation } from '../services/quineMcCluskey';
 
 interface KarnaughModalProps {
   isOpen: boolean;
@@ -10,11 +11,24 @@ interface KarnaughModalProps {
 export const KarnaughModal: React.FC<KarnaughModalProps> = ({ isOpen, onClose, onGenerate }) => {
   const [numVars, setNumVars] = useState<number>(3);
   const [truthTable, setTruthTable] = useState<boolean[]>([]);
+  const [equation, setEquation] = useState<string>("0");
 
   // Initialize truth table when numVars changes
   useEffect(() => {
     setTruthTable(new Array(Math.pow(2, numVars)).fill(false));
   }, [numVars]);
+
+  // Update Equation when TruthTable changes
+  useEffect(() => {
+    const minterms = truthTable
+      .map((val, idx) => val ? idx : -1)
+      .filter(idx => idx !== -1);
+    
+    const terms = solveQuineMcCluskey(numVars, minterms);
+    const variableNames = ['A', 'B', 'C', 'D'].slice(0, numVars);
+    const eq = termsToEquation(terms, variableNames);
+    setEquation(eq);
+  }, [truthTable, numVars]);
 
   if (!isOpen) return null;
 
@@ -42,7 +56,7 @@ export const KarnaughModal: React.FC<KarnaughModalProps> = ({ isOpen, onClose, o
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Truth Table Generator</h2>
-              <p className="text-xs text-zinc-400">Uses Quine-McCluskey method to simplify logic</p>
+              <p className="text-xs text-zinc-400">Define logic &rarr; Equation &rarr; Circuit</p>
             </div>
           </div>
           <button 
@@ -56,8 +70,8 @@ export const KarnaughModal: React.FC<KarnaughModalProps> = ({ isOpen, onClose, o
         {/* Content */}
         <div className="p-6 flex-1 overflow-y-auto flex gap-6 flex-col md:flex-row">
           
-          {/* Settings */}
-          <div className="w-full md:w-1/3 space-y-6">
+          {/* Settings & Preview */}
+          <div className="w-full md:w-1/3 flex flex-col gap-6">
             <div>
               <label className="block text-xs uppercase font-bold text-zinc-500 mb-2">Variables</label>
               <div className="flex bg-zinc-800 p-1 rounded-lg">
@@ -73,17 +87,28 @@ export const KarnaughModal: React.FC<KarnaughModalProps> = ({ isOpen, onClose, o
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] text-zinc-500 mt-2">
-                Select number of inputs. The table will update automatically.
-              </p>
+            </div>
+
+            {/* Equation Output Box */}
+            <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4 shadow-inner">
+               <div className="flex items-center gap-2 text-zinc-500 mb-2">
+                  <Calculator size={14} />
+                  <span className="text-xs uppercase font-bold">Boolean Equation</span>
+               </div>
+               <div className="font-mono text-lg text-green-400 break-words leading-tight">
+                  Q = {equation}
+               </div>
+               <p className="text-[10px] text-zinc-600 mt-2 italic">
+                  Calculated via Quine-McCluskey optimization.
+               </p>
             </div>
 
             <div className="p-4 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
               <h3 className="text-sm font-bold text-zinc-300 mb-2">Instructions</h3>
               <ul className="text-xs text-zinc-400 space-y-1 list-disc pl-4">
-                <li>Toggle the <b>Output (Q)</b> column bits.</li>
-                <li>Red rows indicate "High" (1) outputs.</li>
-                <li>Click Generate to create the optimized circuit.</li>
+                <li>Toggle the <b>Output (Q)</b> bits.</li>
+                <li>The equation updates automatically.</li>
+                <li>Click Generate to build the circuit from the equation.</li>
               </ul>
             </div>
           </div>

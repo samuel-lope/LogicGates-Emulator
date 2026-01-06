@@ -2,11 +2,9 @@ import { CircuitNode, Wire, GateType } from '../types';
 import { COMPONENT_CONFIGS, PIN_SPACING } from '../constants';
 
 // --- Types ---
-type Term = string; // e.g., "01-1" where - is don't care
+export type Term = string; // e.g., "01-1" where - is don't care
 
 // --- Quine-McCluskey Algorithm Helpers ---
-
-const countOnes = (term: string) => term.split('').filter(c => c === '1').length;
 
 const combineTerms = (t1: string, t2: string): string | null => {
   let diffIndex = -1;
@@ -63,37 +61,52 @@ export const solveQuineMcCluskey = (numVars: number, minterms: number[]): string
     currentTerms = Array.from(nextTerms);
   }
 
-  // Note: A full QM implementation would now assume a Prime Implicant Chart to find 
-  // the Essential Prime Implicants. For this visual simulator, using all PIs is 
-  // usually acceptable and safer to ensure coverage, even if not 100% minimal.
-  return Array.from(primeImplicants);
+  // Simple optimization: Remove redundant Prime Implicants (simplified approach)
+  // For a visual tool, displaying all PIs is often clearer than a heavily minimized confusing set,
+  // but we sort them for consistency.
+  return Array.from(primeImplicants).sort();
+};
+
+// --- Equation Generator ---
+
+export const termsToEquation = (terms: string[], variableNames: string[]): string => {
+  if (terms.length === 0) return "0 (False)";
+  
+  // Check for Always True
+  if (terms.some(t => t.split('').every(c => c === '-'))) return "1 (True)";
+
+  const parts = terms.map(term => {
+    let part = "";
+    for (let i = 0; i < term.length; i++) {
+      if (term[i] === '1') {
+        part += variableNames[i];
+      } else if (term[i] === '0') {
+        part += variableNames[i] + "'"; // using ' for NOT
+      }
+    }
+    return part === "" ? "1" : part;
+  });
+
+  return parts.join(" + ");
 };
 
 // --- Circuit Generator ---
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-export const generateCircuitFromTruthTable = (
+export const generateCircuitFromTerms = (
   numVars: number, 
-  truthTable: boolean[], // length 2^numVars
+  terms: string[], 
   startPos: { x: number, y: number }
 ): { nodes: CircuitNode[], wires: Wire[] } => {
   const nodes: CircuitNode[] = [];
   const wires: Wire[] = [];
-  
-  // 1. Get Simplified Terms
-  const minterms = truthTable
-    .map((val, idx) => val ? idx : -1)
-    .filter(idx => idx !== -1);
-    
-  const simplifiedTerms = solveQuineMcCluskey(numVars, minterms);
 
   // Layout Constants
-  const COL_Spacing = 150;
+  const COL_Spacing = 180;
   const ROW_Spacing = 80;
-  const HEADER_Y = startPos.y;
 
-  // 2. Create Input Switches (Column 0)
+  // 1. Create Input Switches (Column 0)
   const inputs: CircuitNode[] = [];
   const inputLabels = ['A', 'B', 'C', 'D'].slice(0, numVars);
   
@@ -112,13 +125,12 @@ export const generateCircuitFromTruthTable = (
     nodes.push(node);
   });
 
-  // 3. Create NOT Gates (Column 1) - Only if needed by terms
-  // We map '0' in a term to a NOT gate for that input index
+  // 2. Create NOT Gates (Column 1) - Only if needed by terms
+  // We strictly create NOTs based on the equation requirements.
   const notGates: Map<number, CircuitNode> = new Map(); // inputIndex -> NotGate
-  
-  // Check which inputs need negation
   const needsNot = new Array(numVars).fill(false);
-  simplifiedTerms.forEach(term => {
+  
+  terms.forEach(term => {
     for(let i=0; i<term.length; i++) {
       if (term[i] === '0') needsNot[i] = true;
     }
@@ -139,7 +151,6 @@ export const generateCircuitFromTruthTable = (
       nodes.push(notNode);
       notGates.set(i, notNode);
 
-      // Wire Input -> NOT
       wires.push({
         id: generateId(),
         sourceNodeId: inputNode.id,
@@ -151,64 +162,74 @@ export const generateCircuitFromTruthTable = (
     }
   });
 
-  // 4. Create AND Gates (Column 2) - One for each term
-  const andGates: CircuitNode[] = [];
-  const AND_COL_X = startPos.x + (COL_Spacing * 2);
-  
-  // If result is always TRUE or FALSE, handle separately? 
-  // For simpliciy, if simplifiedTerms is empty, it's FALSE. If one term is all '-', it's TRUE.
-  
-  if (simplifiedTerms.length === 0) {
-    // Always False -> Just a Lamp off? 
-    // We'll create a lamp and leave it disconnected (Floating Low)
-  } else if (simplifiedTerms.length === 1 && simplifiedTerms[0] === '-'.repeat(numVars)) {
-    // Always True -> Connect Lamp to a default ON source? 
-    // Or connect to an OR gate with inverted inputs cancelling out? 
-    // Edge case: Let's simpler logic handle specific terms.
+  // 3. Create Product Terms (AND Gates)
+  interface TermOutput {
+    sourceNodeId: string;
+    sourcePinIndex: number;
+    yPosition: number;
   }
 
-  simplifiedTerms.forEach((term, idx) => {
-    // Skip terms that are purely "don't care" (handled by logic, but ensuring sanity)
-    if (term === '-'.repeat(numVars) && simplifiedTerms.length > 1) return; 
+  const termOutputs: TermOutput[] = [];
+  const AND_COL_X = startPos.x + (COL_Spacing * 2);
+  
+  terms.forEach((term, idx) => {
+    // If term is all dashes ("---"), it's logic 1. 
+    // Usually handled by logic before calling this, but if present:
+    if (term === '-'.repeat(numVars) && terms.length > 1) return; 
 
-    // Determine inputs for this AND gate
-    // A term like "1-0" (Vars A,B,C) means: A AND (NOT C)
-    const connections: { nodeId: string, pinIndex: number }[] = [];
+    const connections: { nodeId: string, pinIndex: number, y: number }[] = [];
     
     for (let i = 0; i < term.length; i++) {
       const char = term[i];
       if (char === '1') {
-        connections.push({ nodeId: inputs[i].id, pinIndex: 0 });
+        connections.push({ nodeId: inputs[i].id, pinIndex: 0, y: inputs[i].position.y });
       } else if (char === '0') {
         const notNode = notGates.get(i);
-        if (notNode) connections.push({ nodeId: notNode.id, pinIndex: 0 });
+        if (notNode) connections.push({ nodeId: notNode.id, pinIndex: 0, y: notNode.position.y });
       }
     }
 
-    // Special case: If term is all dashes ("---"), it's an "Always True" condition.
-    // In logic circuits, this is VCC. We can simulate by connecting A and NOT A to an OR? 
-    // For this tool, if we have connections, we make an AND.
-    
-    if (connections.length > 0) {
-      const gateType = connections.length === 1 ? GateType.OR : GateType.AND; // Use OR as buffer for single input
+    if (connections.length === 0) {
+       // Term is "1" (Always True)
+       // We can represent this as a switch that defaults to ON, or ignore if part of a sum
+    } else if (connections.length === 1) {
+      // Direct connection (Single Variable Term)
+      termOutputs.push({
+        sourceNodeId: connections[0].nodeId,
+        sourcePinIndex: connections[0].pinIndex,
+        yPosition: connections[0].y
+      });
+    } else {
+      // Create AND Gate (Product)
       const inputCount = connections.length;
       const height = (inputCount + 1) * PIN_SPACING;
+      
+      // Smart Positioning: Average Y of inputs
+      const avgY = connections.reduce((sum, c) => sum + c.y, 0) / inputCount;
+      
+      // Collision avoidance with previous gates
+      let yPos = avgY - (height / 2);
+      if (idx > 0) {
+        const prevY = termOutputs[termOutputs.length - 1]?.yPosition || -1000;
+        // Minimal vertical distance check
+        if (yPos < prevY + 60) {
+           yPos = prevY + 60;
+        }
+      }
 
       const andNode: CircuitNode = {
         id: generateId(),
-        type: connections.length === 1 ? GateType.OR : GateType.AND, // Visual buffer
-        position: { x: AND_COL_X, y: startPos.y + (idx * (height + 20)) },
+        type: GateType.AND,
+        position: { x: AND_COL_X, y: yPos },
         width: COMPONENT_CONFIGS[GateType.AND].width,
         height: height,
         inputs: new Array(inputCount).fill(false),
         state: false,
-        label: connections.length === 1 ? 'BUF' : 'AND'
+        label: 'AND'
       };
       
       nodes.push(andNode);
-      andGates.push(andNode);
-
-      // Wire inputs to this gate
+      
       connections.forEach((conn, pinIdx) => {
         wires.push({
           id: generateId(),
@@ -219,57 +240,66 @@ export const generateCircuitFromTruthTable = (
           state: false
         });
       });
+
+      termOutputs.push({
+        sourceNodeId: andNode.id,
+        sourcePinIndex: 0,
+        yPosition: yPos + (height / 2)
+      });
     }
   });
 
-  // 5. Create OR Gate (Column 3) - Sum of Products
+  // 4. Create Sum Term (OR Gate)
   const OR_COL_X = AND_COL_X + COL_Spacing + 40;
-  const lampPos = { x: OR_COL_X + 100, y: startPos.y };
   let finalOutputNodeId = '';
+  let finalOutputPinIdx = 0;
+  let lampY = startPos.y;
 
-  if (andGates.length > 0) {
-    if (andGates.length === 1) {
-      // Direct connection (only one term)
-      finalOutputNodeId = andGates[0].id;
-    } else {
-      const inputCount = andGates.length;
-      const height = (inputCount + 1) * PIN_SPACING;
-      // Center the OR gate vertically relative to AND gates
-      const avgY = andGates.reduce((sum, n) => sum + n.position.y, 0) / andGates.length;
+  if (termOutputs.length === 0) {
+     // No terms = False. Lamp unconnected.
+  } else if (termOutputs.length === 1) {
+    // Single term = Direct output
+    finalOutputNodeId = termOutputs[0].sourceNodeId;
+    finalOutputPinIdx = termOutputs[0].sourcePinIndex;
+    lampY = termOutputs[0].yPosition;
+  } else {
+    // Multiple terms = OR Gate
+    const inputCount = termOutputs.length;
+    const height = (inputCount + 1) * PIN_SPACING;
+    const avgY = termOutputs.reduce((sum, t) => sum + t.yPosition, 0) / inputCount;
 
-      const orNode: CircuitNode = {
+    const orNode: CircuitNode = {
+      id: generateId(),
+      type: GateType.OR,
+      position: { x: OR_COL_X, y: avgY - (height/2) },
+      width: COMPONENT_CONFIGS[GateType.OR].width,
+      height: height,
+      inputs: new Array(inputCount).fill(false),
+      state: false,
+      label: 'OR'
+    };
+    nodes.push(orNode);
+    finalOutputNodeId = orNode.id;
+    finalOutputPinIdx = 0;
+    lampY = avgY;
+
+    termOutputs.forEach((term, i) => {
+      wires.push({
         id: generateId(),
-        type: GateType.OR,
-        position: { x: OR_COL_X, y: avgY },
-        width: COMPONENT_CONFIGS[GateType.OR].width,
-        height: height,
-        inputs: new Array(inputCount).fill(false),
-        state: false,
-        label: 'OR'
-      };
-      nodes.push(orNode);
-      finalOutputNodeId = orNode.id;
-      lampPos.y = avgY + (height / 2) - 25;
-
-      // Wire ANDs to OR
-      andGates.forEach((andGate, i) => {
-        wires.push({
-          id: generateId(),
-          sourceNodeId: andGate.id,
-          sourcePinIndex: 0,
-          targetNodeId: orNode.id,
-          targetPinIndex: i,
-          state: false
-        });
+        sourceNodeId: term.sourceNodeId,
+        sourcePinIndex: term.sourcePinIndex,
+        targetNodeId: orNode.id,
+        targetPinIndex: i,
+        state: false
       });
-    }
+    });
   }
 
-  // 6. Create Output Lamp
+  // 5. Output Lamp
   const lampNode: CircuitNode = {
     id: generateId(),
     type: GateType.OUTPUT_LAMP,
-    position: lampPos,
+    position: { x: OR_COL_X + 100, y: lampY - 25 }, 
     width: 50,
     height: 50,
     inputs: [false],
@@ -282,7 +312,7 @@ export const generateCircuitFromTruthTable = (
     wires.push({
       id: generateId(),
       sourceNodeId: finalOutputNodeId,
-      sourcePinIndex: 0,
+      sourcePinIndex: finalOutputPinIdx,
       targetNodeId: lampNode.id,
       targetPinIndex: 0,
       state: false
@@ -291,3 +321,17 @@ export const generateCircuitFromTruthTable = (
 
   return { nodes, wires };
 };
+
+// Wrapper for backward compatibility / direct calls
+export const generateCircuitFromTruthTable = (
+    numVars: number, 
+    truthTable: boolean[], 
+    startPos: { x: number, y: number }
+  ) => {
+    const minterms = truthTable
+      .map((val, idx) => val ? idx : -1)
+      .filter(idx => idx !== -1);
+      
+    const terms = solveQuineMcCluskey(numVars, minterms);
+    return generateCircuitFromTerms(numVars, terms, startPos);
+  };

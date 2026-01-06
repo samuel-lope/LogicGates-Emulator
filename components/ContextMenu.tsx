@@ -89,8 +89,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             <span className="text-xs font-mono text-white">{inputCount}</span>
             <button
               onClick={(e) => { e.stopPropagation(); onInputCountChange(1); }}
-              disabled={inputCount >= 8}
-              className={`p-1 rounded hover:bg-zinc-600 text-zinc-200 transition-colors ${inputCount >= 8 ? 'opacity-30 cursor-not-allowed' : ''}`}
+              disabled={inputCount >= 32}
+              className={`p-1 rounded hover:bg-zinc-600 text-zinc-200 transition-colors ${inputCount >= 32 ? 'opacity-30 cursor-not-allowed' : ''}`}
             >
               <Plus size={14} />
             </button>
