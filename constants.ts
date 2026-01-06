@@ -42,7 +42,7 @@ export interface ComponentConfig {
 // SVG Generators for Professional Look
 const svgBase = (content: string, w: number, h: number) => 
   `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <style>path, circle { fill: #333333; stroke: #e0e0e0; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }</style>
+  <style>path, circle, rect { fill: #333333; stroke: #e0e0e0; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }</style>
   ${content}
 </svg>`)}`;
 
@@ -53,6 +53,9 @@ const GATES_SVG = {
   NAND: svgBase('<path d="M0,0 L40,0 A30,30 0 0,1 40,60 L0,60 Z" /><circle cx="74" cy="30" r="4" />', 80, 60),
   NOR: svgBase('<path d="M0,0 Q25,30 0,60 L15,60 Q55,60 80,30 Q55,0 15,0 L0,0 Z" /><circle cx="84" cy="30" r="4" />', 80, 60),
   XOR: svgBase('<path d="M10,0 Q35,30 10,60 L25,60 Q65,60 90,30 Q65,0 25,0 L10,0 Z" /><path d="M0,0 Q25,30 0,60" fill="none" />', 90, 60),
+  INPUT_SWITCH: svgBase('<rect x="5" y="10" width="40" height="30" rx="4" /><rect x="12" y="15" width="26" height="20" fill="#555" rx="2" />', 50, 50),
+  OUTPUT_LAMP: svgBase('<circle cx="25" cy="25" r="18" /><circle cx="25" cy="25" r="10" fill="#555" stroke="none" />', 50, 50),
+  CLOCK: svgBase('<rect x="5" y="10" width="40" height="30" rx="4" /><path d="M12,25 L18,25 L18,16 L32,16 L32,34 L38,34 L38,25" fill="none" />', 50, 50),
 };
 
 export const COMPONENT_CONFIGS: Record<GateType, ComponentConfig> = {
@@ -122,7 +125,34 @@ export const COMPONENT_CONFIGS: Record<GateType, ComponentConfig> = {
     description: 'Exclusive OR.',
     imageSrc: GATES_SVG.XOR
   },
-  [GateType.INPUT_SWITCH]: { type: GateType.INPUT_SWITCH, label: 'SW', width: 50, height: 50, inputCount: 0, outputCount: 1, description: 'Toggle switch for logic High/Low.' },
-  [GateType.OUTPUT_LAMP]: { type: GateType.OUTPUT_LAMP, label: 'LED', width: 50, height: 50, inputCount: 1, outputCount: 0, description: 'Visual indicator of signal state.' },
-  [GateType.CLOCK]: { type: GateType.CLOCK, label: 'CLK', width: 50, height: 50, inputCount: 0, outputCount: 1, description: 'Toggles signal periodically.' },
+  [GateType.INPUT_SWITCH]: { 
+    type: GateType.INPUT_SWITCH, 
+    label: 'SW', 
+    width: 50, 
+    height: 50, 
+    inputCount: 0, 
+    outputCount: 1, 
+    description: 'Toggle switch for logic High/Low.',
+    imageSrc: GATES_SVG.INPUT_SWITCH
+  },
+  [GateType.OUTPUT_LAMP]: { 
+    type: GateType.OUTPUT_LAMP, 
+    label: 'LED', 
+    width: 50, 
+    height: 50, 
+    inputCount: 1, 
+    outputCount: 0, 
+    description: 'Visual indicator of signal state.',
+    imageSrc: GATES_SVG.OUTPUT_LAMP
+  },
+  [GateType.CLOCK]: { 
+    type: GateType.CLOCK, 
+    label: 'CLK', 
+    width: 50, 
+    height: 50, 
+    inputCount: 0, 
+    outputCount: 1, 
+    description: 'Toggles signal periodically.',
+    imageSrc: GATES_SVG.CLOCK
+  },
 };

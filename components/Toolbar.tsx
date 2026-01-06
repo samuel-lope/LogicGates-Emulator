@@ -110,17 +110,29 @@ const Toolbar: React.FC<ToolbarProps> = ({
               <button
                 key={gate.type}
                 onClick={() => onSelectTool(InteractionMode.PLACING, gate.type)}
-                className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-200 group ${
+                className={`flex items-center p-2 rounded-lg border transition-all duration-200 group relative ${
                   currentMode === InteractionMode.PLACING && selectedGateType === gate.type
                     ? 'bg-zinc-800 border-green-500 text-green-400 shadow-[0_0_15px_rgba(0,255,65,0.1)]'
                     : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'
                 }`}
               >
-                <div className="flex flex-col items-start">
-                  <span className="font-bold font-mono text-sm group-hover:text-white transition-colors">{gate.label}</span>
-                  <span className="text-[10px] text-zinc-500 leading-tight mt-1">{gate.description}</span>
+                {/* Visual Symbol Box */}
+                <div className="w-12 h-9 bg-zinc-900/50 rounded border border-zinc-700/50 flex items-center justify-center mr-3 shrink-0 overflow-hidden">
+                   {gate.imageSrc ? (
+                      <img src={gate.imageSrc} alt={gate.label} className="w-full h-full object-contain p-1 opacity-90" />
+                   ) : (
+                      <span className="text-[10px] font-mono opacity-50">{gate.label}</span>
+                   )}
                 </div>
-                <Plus size={16} className={`opacity-0 group-hover:opacity-100 transition-opacity ${currentMode === InteractionMode.PLACING && selectedGateType === gate.type ? 'text-green-500 opacity-100' : ''}`} />
+
+                <div className="flex flex-col items-start flex-1 min-w-0">
+                  <span className="font-bold font-mono text-sm group-hover:text-white transition-colors">{gate.label}</span>
+                  <span className="text-[10px] text-zinc-500 leading-tight mt-0.5 truncate w-full">{gate.description}</span>
+                </div>
+                
+                <div className={`ml-2 transition-opacity ${currentMode === InteractionMode.PLACING && selectedGateType === gate.type ? 'opacity-100 text-green-500' : 'opacity-0 group-hover:opacity-50'}`}>
+                    <Plus size={16} />
+                </div>
               </button>
             ))}
           </div>
