@@ -33,7 +33,7 @@ export interface CircuitNode {
   color?: string; // Optional custom color (e.g. for LEDs/Wires)
 }
 
-export type WireCurveType = 'bezier' | 'straight' | 'step';
+export type WireCurveType = 'curved' | 'straight' | 'remote';
 
 export interface Wire {
   id: string;
@@ -44,6 +44,7 @@ export interface Wire {
   state: boolean;
   curveType?: WireCurveType;
   color?: string;
+  waypoints?: Position[]; // For straight wires
 }
 
 export interface Camera {
@@ -68,8 +69,10 @@ export interface InteractionState {
   hoveredPin: { nodeId: string; type: 'input' | 'output'; index: number } | null;
   dragStart: Position; // Screen coordinates
   dragOffset: Position; // Offset from node center (Legacy/Single) or unused in multi-drag
-  activeWireStart: { nodeId: string; pinIndex: number } | null;
+  activeWireStart: { nodeId: string; pinIndex: number; waypoints?: Position[] } | null;
+  activeWireCurveType: WireCurveType;
   placingType: GateType | null;
+  draggingWaypoint: { wireId: string; index: number } | null;
 }
 
 export interface ProjectData {

@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
-import { GateType, InteractionMode } from '../types';
+import { GateType, InteractionMode, WireCurveType } from '../types';
 import { COMPONENT_CONFIGS } from '../constants';
-import { MousePointer2, Plus, Download, Upload, Grid } from 'lucide-react';
+import { MousePointer2, Plus, Download, Upload, Activity, MoveRight, Wifi } from 'lucide-react';
 
 interface ToolbarProps {
   onSelectTool: (mode: InteractionMode, gateType?: GateType) => void;
@@ -9,6 +9,8 @@ interface ToolbarProps {
   selectedGateType: GateType | null;
   onSave: () => void;
   onLoad: (file: File) => void;
+  activeWireCurveType: WireCurveType;
+  onChangeWireCurveType: (type: WireCurveType) => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({ 
@@ -16,7 +18,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
   currentMode, 
   selectedGateType,
   onSave,
-  onLoad
+  onLoad,
+  activeWireCurveType,
+  onChangeWireCurveType
 }) => {
   const gates = Object.values(COMPONENT_CONFIGS);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +90,48 @@ const Toolbar: React.FC<ToolbarProps> = ({
               <MousePointer2 size={18} />
               <span className="font-medium">Selection / Drag</span>
             </button>
+            
+            <div className="pt-2">
+              <h3 className="text-[10px] uppercase font-semibold text-zinc-500 mb-2 tracking-wider">Wire Type</h3>
+              <div className="grid grid-cols-3 gap-1">
+                <button
+                  onClick={() => onChangeWireCurveType('curved')}
+                  className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 ${
+                    activeWireCurveType === 'curved'
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+                      : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+                  }`}
+                  title="Curved Wire"
+                >
+                  <Activity size={16} className="mb-1" />
+                  <span className="text-[9px] font-medium">Curved</span>
+                </button>
+                <button
+                  onClick={() => onChangeWireCurveType('straight')}
+                  className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 ${
+                    activeWireCurveType === 'straight'
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+                      : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+                  }`}
+                  title="Straight Wire"
+                >
+                  <MoveRight size={16} className="mb-1" />
+                  <span className="text-[9px] font-medium">Straight</span>
+                </button>
+                <button
+                  onClick={() => onChangeWireCurveType('remote')}
+                  className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 ${
+                    activeWireCurveType === 'remote'
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+                      : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+                  }`}
+                  title="Remote Wire"
+                >
+                  <Wifi size={16} className="mb-1" />
+                  <span className="text-[9px] font-medium">Remote</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -127,8 +173,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
       </div>
 
       <div className="p-3 bg-zinc-950 text-[10px] text-zinc-500 text-center font-mono border-t border-zinc-800">
-        Left Click: Place/Select<br/>
-        Right Click: Context Menu / Pan<br/>
+        Left Click: Place/Select/Wire<br/>
+        Right Click: Menu / Pan / Cancel<br/>
+        Double Click (Straight Wire): Add/Remove Node<br/>
         Wheel: Zoom
       </div>
     </div>

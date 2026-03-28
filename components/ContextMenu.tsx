@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Copy, Trash2, Minus, Plus } from 'lucide-react';
-import { GateType } from '../types';
+import { Copy, Trash2, Minus, Plus, Activity, MoveRight, Wifi } from 'lucide-react';
+import { GateType, WireCurveType } from '../types';
 import { LED_COLORS } from '../constants';
 
 interface ContextMenuProps {
@@ -9,8 +9,10 @@ interface ContextMenuProps {
   nodeType?: GateType;
   currentColor?: string;
   inputCount?: number;
+  wireCurveType?: WireCurveType;
   onColorChange?: (color: string) => void;
   onInputCountChange?: (delta: number) => void;
+  onChangeWireCurveType?: (type: WireCurveType) => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onClose: () => void;
@@ -22,8 +24,10 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   nodeType, 
   currentColor, 
   inputCount,
+  wireCurveType,
   onColorChange, 
   onInputCountChange,
+  onChangeWireCurveType,
   onDuplicate, 
   onDelete, 
   onClose 
@@ -93,6 +97,36 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
               className={`p-1 rounded hover:bg-zinc-600 text-zinc-200 transition-colors ${inputCount >= 32 ? 'opacity-30 cursor-not-allowed' : ''}`}
             >
               <Plus size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Wire Curve Type Selector */}
+      {wireCurveType && onChangeWireCurveType && (
+        <div className="px-4 py-2 border-b border-zinc-700">
+          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">Wire Type</div>
+          <div className="flex gap-1 bg-zinc-700 rounded p-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onChangeWireCurveType('curved'); }}
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${wireCurveType === 'curved' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title="Curved"
+            >
+              <Activity size={14} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onChangeWireCurveType('straight'); }}
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${wireCurveType === 'straight' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title="Straight"
+            >
+              <MoveRight size={14} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onChangeWireCurveType('remote'); }}
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${wireCurveType === 'remote' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title="Remote"
+            >
+              <Wifi size={14} />
             </button>
           </div>
         </div>

@@ -10,7 +10,7 @@ import {
   ProjectData
 } from './types';
 import { COMPONENT_CONFIGS, COLORS, PIN_SPACING } from './constants';
-import { renderCircuit, screenToWorld, worldToScreen, checkWireHit } from './services/renderer';
+import { renderCircuit, screenToWorld, worldToScreen, checkWireHit, checkWaypointHit, getClosestSegmentIndex } from './services/renderer';
 import { propagateCircuit } from './services/circuitEngine';
 import Toolbar from './components/Toolbar';
 import { ContextMenu } from './components/ContextMenu';
@@ -27,7 +27,7 @@ const App: React.FC = () => {
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 1 });
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [selectedWireIds, setSelectedWireIds] = useState<string[]>([]);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string; wireId?: string } | null>(null);
   
   // Interaction State
   const [interaction, setInteraction] = useState<InteractionState>({
@@ -38,7 +38,9 @@ const App: React.FC = () => {
     dragStart: { x: 0, y: 0 },
     dragOffset: { x: 0, y: 0 },
     activeWireStart: null,
+    activeWireCurveType: 'curved',
     placingType: null,
+    draggingWaypoint: null,
   });
 
   // Refs
@@ -323,6 +325,7 @@ const App: React.FC = () => {
     e.preventDefault();
     
     let targetNodeId = interaction.hoveredNodeId;
+    let targetWireId = interaction.hoveredWireId;
     
     if (targetNodeId) {
       if (!selectedNodeIds.includes(targetNodeId)) {
@@ -333,6 +336,16 @@ const App: React.FC = () => {
         x: e.clientX,
         y: e.clientY,
         nodeId: targetNodeId
+      });
+    } else if (targetWireId) {
+      if (!selectedWireIds.includes(targetWireId)) {
+        setSelectedWireIds([targetWireId]);
+        setSelectedNodeIds([]);
+      }
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        wireId: targetWireId
       });
     }
   };
@@ -345,9 +358,13 @@ const App: React.FC = () => {
     const y = e.clientY - rect.top;
     const worldPos = screenToWorld(x, y, camera);
 
-    // Right click handled by ContextMenu or Pan
+    // Right click handled by ContextMenu or Pan or Wiring cancel
     if (e.button === 2) {
-      if (!interaction.hoveredNodeId) {
+      if (interaction.mode === InteractionMode.WIRING) {
+        // Handled in mouseUp
+        return;
+      }
+      if (!interaction.hoveredNodeId && !interaction.hoveredWireId) {
         setInteraction(prev => ({
           ...prev,
           mode: InteractionMode.PANNING,
@@ -431,10 +448,57 @@ const App: React.FC = () => {
       return;
     }
     
+    // Waypoint Interaction (Dragging / Removing)
+    const waypointHit = checkWaypointHit(worldPos.x, worldPos.y, wires, selectedWireIds);
+    if (waypointHit) {
+      if (e.detail === 2) {
+        // Double click to remove waypoint
+        setWires(prev => prev.map(w => {
+          if (w.id === waypointHit.wireId) {
+            const newWaypoints = [...(w.waypoints || [])];
+            newWaypoints.splice(waypointHit.index, 1);
+            return { ...w, waypoints: newWaypoints };
+          }
+          return w;
+        }));
+      } else {
+        // Start dragging waypoint
+        setInteraction(prev => ({
+          ...prev,
+          draggingWaypoint: waypointHit
+        }));
+      }
+      return;
+    }
+    
     // Wire Selection Check (if no node or pin is hovered)
     // Check if we hit a wire using the logic in renderer
     const hitWireId = checkWireHit(worldPos.x, worldPos.y, wires, nodes);
     if (hitWireId) {
+      if (e.detail === 2) {
+        // Double click on straight wire to add waypoint
+        const wire = wires.find(w => w.id === hitWireId);
+        if (wire && wire.curveType === 'straight') {
+          const segmentIndex = getClosestSegmentIndex(worldPos.x, worldPos.y, wire, nodes);
+          if (segmentIndex !== -1) {
+            setWires(prev => prev.map(w => {
+              if (w.id === hitWireId) {
+                const newWaypoints = [...(w.waypoints || [])];
+                newWaypoints.splice(segmentIndex, 0, { x: worldPos.x, y: worldPos.y });
+                return { ...w, waypoints: newWaypoints };
+              }
+              return w;
+            }));
+            // Also select the wire if not selected
+            if (!selectedWireIds.includes(hitWireId)) {
+              setSelectedWireIds([hitWireId]);
+              setSelectedNodeIds([]);
+            }
+            return;
+          }
+        }
+      }
+
       const isMultiSelectKey = e.shiftKey || e.ctrlKey || e.metaKey;
       let newWireSelection = [...selectedWireIds];
       
@@ -477,6 +541,20 @@ const App: React.FC = () => {
       const dy = y - interaction.dragStart.y;
       setCamera(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
       setInteraction(prev => ({ ...prev, dragStart: { x, y } }));
+      return;
+    }
+
+    // Dragging Waypoints
+    if (interaction.draggingWaypoint) {
+      const worldPos = screenToWorld(x, y, camera);
+      setWires(prev => prev.map(w => {
+        if (w.id === interaction.draggingWaypoint!.wireId && w.waypoints) {
+          const newWaypoints = [...w.waypoints];
+          newWaypoints[interaction.draggingWaypoint!.index] = { x: worldPos.x, y: worldPos.y };
+          return { ...w, waypoints: newWaypoints };
+        }
+        return w;
+      }));
       return;
     }
 
@@ -578,16 +656,47 @@ const App: React.FC = () => {
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
+    if (interaction.draggingWaypoint) {
+      setInteraction(prev => ({
+        ...prev,
+        draggingWaypoint: null
+      }));
+      return;
+    }
+
+    // Right click to cancel wiring or remove last waypoint
+    if (e.button === 2 && interaction.mode === InteractionMode.WIRING && interaction.activeWireStart) {
+      if (interaction.activeWireCurveType === 'straight' && interaction.activeWireStart.waypoints && interaction.activeWireStart.waypoints.length > 0) {
+        setInteraction(prev => ({
+          ...prev,
+          activeWireStart: {
+            ...prev.activeWireStart!,
+            waypoints: prev.activeWireStart!.waypoints!.slice(0, -1)
+          }
+        }));
+        return;
+      }
+      
+      setInteraction(prev => ({
+        ...prev,
+        mode: InteractionMode.IDLE,
+        activeWireStart: null
+      }));
+      return;
+    }
+
     // Complete Wiring
-    if (interaction.mode === InteractionMode.WIRING && interaction.hoveredPin && interaction.activeWireStart) {
-      if (interaction.hoveredPin.type === 'input') {
+    if (interaction.mode === InteractionMode.WIRING && interaction.activeWireStart) {
+      if (interaction.hoveredPin && interaction.hoveredPin.type === 'input') {
         const newWire: Wire = {
           id: generateId(),
           sourceNodeId: interaction.activeWireStart.nodeId,
           sourcePinIndex: interaction.activeWireStart.pinIndex,
           targetNodeId: interaction.hoveredPin.nodeId,
           targetPinIndex: interaction.hoveredPin.index,
-          state: false
+          state: false,
+          curveType: interaction.activeWireCurveType,
+          waypoints: interaction.activeWireCurveType === 'straight' ? [...(interaction.activeWireStart.waypoints || [])] : []
         };
         
         const exists = wires.some(w => 
@@ -600,6 +709,27 @@ const App: React.FC = () => {
           setNodes(res.nodes);
           setWires(res.wires);
         }
+      } else if (interaction.activeWireCurveType === 'straight') {
+        // Add waypoint on click if straight wire and not hitting a pin
+        const rect = canvasRef.current!.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const worldPos = screenToWorld(x, y, camera);
+        
+        const currentWaypoints = interaction.activeWireStart.waypoints || [];
+        const lastWaypoint = currentWaypoints[currentWaypoints.length - 1];
+        
+        // Prevent adding duplicate waypoints if clicked too close to the last one
+        if (!lastWaypoint || Math.hypot(worldPos.x - lastWaypoint.x, worldPos.y - lastWaypoint.y) > 5) {
+          setInteraction(prev => ({
+            ...prev,
+            activeWireStart: {
+              ...prev.activeWireStart!,
+              waypoints: [...currentWaypoints, worldPos]
+            }
+          }));
+        }
+        return; // Don't reset interaction mode
       }
     }
 
@@ -623,7 +753,8 @@ const App: React.FC = () => {
       ...prev,
       mode: prev.mode === InteractionMode.PLACING ? InteractionMode.PLACING : InteractionMode.IDLE,
       activeWireStart: null,
-      dragStart: { x: 0, y: 0 }
+      dragStart: { x: 0, y: 0 },
+      draggingWaypoint: null
     }));
   };
 
@@ -637,8 +768,19 @@ const App: React.FC = () => {
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Delete' || e.key === 'Backspace') {
       deleteSelected();
+    } else if (e.key === 'Escape') {
+      setInteraction(prev => {
+        if (prev.mode === InteractionMode.WIRING) {
+          return {
+            ...prev,
+            mode: InteractionMode.IDLE,
+            activeWireStart: null
+          };
+        }
+        return prev;
+      });
     }
-  }, []);
+  }, [deleteSelected]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -665,6 +807,8 @@ const App: React.FC = () => {
         selectedGateType={interaction.placingType}
         onSave={handleSaveProject}
         onLoad={handleLoadProject}
+        activeWireCurveType={interaction.activeWireCurveType}
+        onChangeWireCurveType={(type) => setInteraction(prev => ({ ...prev, activeWireCurveType: type }))}
       />
       
       <div 
@@ -687,12 +831,22 @@ const App: React.FC = () => {
           x={contextMenu.x} 
           y={contextMenu.y} 
           nodeType={nodes.find(n => n.id === contextMenu.nodeId)?.type}
-          currentColor={nodes.find(n => n.id === contextMenu.nodeId)?.color}
+          currentColor={nodes.find(n => n.id === contextMenu.nodeId)?.color || wires.find(w => w.id === contextMenu.wireId)?.color}
           inputCount={nodes.find(n => n.id === contextMenu.nodeId)?.inputs.length}
+          wireCurveType={wires.find(w => w.id === contextMenu.wireId)?.curveType}
           onColorChange={(color) => {
-             setNodes(prev => prev.map(n => n.id === contextMenu.nodeId ? { ...n, color } : n));
+             if (contextMenu.nodeId) {
+               setNodes(prev => prev.map(n => n.id === contextMenu.nodeId ? { ...n, color } : n));
+             } else if (contextMenu.wireId) {
+               setWires(prev => prev.map(w => w.id === contextMenu.wireId ? { ...w, color } : w));
+             }
           }}
           onInputCountChange={handleInputCountChange}
+          onChangeWireCurveType={(type) => {
+             if (contextMenu.wireId) {
+               setWires(prev => prev.map(w => w.id === contextMenu.wireId ? { ...w, curveType: type } : w));
+             }
+          }}
           onDelete={deleteSelected}
           onDuplicate={duplicateSelected}
           onClose={() => setContextMenu(null)}

@@ -69,10 +69,94 @@ export const checkWireHit = (
 ): string | null => {
   const HIT_THRESHOLD = 8; // World units
 
+  // First check remote wires
+  const remoteSources = new Map<string, Wire[]>();
+  const remoteTargets = new Map<string, Wire[]>();
+
+  for (const wire of wires) {
+    if (wire.curveType === 'remote') {
+      const sKey = `${wire.sourceNodeId}-${wire.sourcePinIndex}`;
+      if (!remoteSources.has(sKey)) remoteSources.set(sKey, []);
+      remoteSources.get(sKey)!.push(wire);
+
+      const tKey = `${wire.targetNodeId}-${wire.targetPinIndex}`;
+      if (!remoteTargets.has(tKey)) remoteTargets.set(tKey, []);
+      remoteTargets.get(tKey)!.push(wire);
+    }
+  }
+
+  const charWidth = 6; // Approx width of 10px monospace font in world units
+  const charHeight = 8;
+
+  for (const [key, groupWires] of remoteSources.entries()) {
+    const wire = groupWires[0];
+    const sourceNode = nodes.find(n => n.id === wire.sourceNodeId);
+    if (!sourceNode) continue;
+    
+    const startX = sourceNode.position.x + sourceNode.width;
+    const startY = sourceNode.position.y + (sourceNode.height / 2);
+
+    let currentX = startX + 20;
+    currentX += charWidth; // '['
+    
+    for (let i = 0; i < groupWires.length; i++) {
+      const w = groupWires[i];
+      const idWidth = 4 * charWidth;
+      
+      if (
+        worldX >= currentX - 2 && worldX <= currentX + idWidth + 2 &&
+        worldY >= startY - charHeight && worldY <= startY + charHeight
+      ) {
+        return w.id;
+      }
+      
+      currentX += idWidth;
+      if (i < groupWires.length - 1) {
+        currentX += 3 * charWidth; // ' - '
+      }
+    }
+  }
+
+  for (const [key, groupWires] of remoteTargets.entries()) {
+    const wire = groupWires[0];
+    const targetNode = nodes.find(n => n.id === wire.targetNodeId);
+    if (!targetNode) continue;
+
+    const inputCount = targetNode.inputs.length;
+    const pinSpacing = targetNode.height / (inputCount + 1);
+    const endX = targetNode.position.x;
+    const endY = targetNode.position.y + (pinSpacing * (wire.targetPinIndex + 1));
+
+    const totalChars = 1 + groupWires.length * 4 + (groupWires.length - 1) * 3 + 1;
+    const totalWidth = totalChars * charWidth;
+    
+    let currentX = endX - 20 - totalWidth;
+    currentX += charWidth; // '['
+
+    for (let i = 0; i < groupWires.length; i++) {
+      const w = groupWires[i];
+      const idWidth = 4 * charWidth;
+      
+      if (
+        worldX >= currentX - 2 && worldX <= currentX + idWidth + 2 &&
+        worldY >= endY - charHeight && worldY <= endY + charHeight
+      ) {
+        return w.id;
+      }
+      
+      currentX += idWidth;
+      if (i < groupWires.length - 1) {
+        currentX += 3 * charWidth; // ' - '
+      }
+    }
+  }
+
   for (const wire of wires) {
     const sourceNode = nodes.find(n => n.id === wire.sourceNodeId);
     const targetNode = nodes.find(n => n.id === wire.targetNodeId);
     if (!sourceNode || !targetNode) continue;
+
+    if (wire.curveType === 'remote') continue;
 
     // Calculate start/end points exactly as they are drawn
     const startX = sourceNode.position.x + sourceNode.width;
@@ -84,19 +168,28 @@ export const checkWireHit = (
     const endX = targetNode.position.x;
     const endY = targetNode.position.y + (pinSpacing * (wire.targetPinIndex + 1));
 
-    const curveType = wire.curveType || 'bezier';
+    const curveType = wire.curveType || 'curved';
     let dist = Infinity;
 
+    if (curveType === 'remote') {
+      continue; // Remote wires are not clickable/hittable
+    }
+
     if (curveType === 'straight') {
-      dist = distToSegment(worldX, worldY, startX, startY, endX, endY);
-    } else if (curveType === 'step') {
-      const midX = (startX + endX) / 2;
-      const d1 = distToSegment(worldX, worldY, startX, startY, midX, startY);
-      const d2 = distToSegment(worldX, worldY, midX, startY, midX, endY);
-      const d3 = distToSegment(worldX, worldY, midX, endY, endX, endY);
-      dist = Math.min(d1, d2, d3);
+      if (wire.waypoints && wire.waypoints.length > 0) {
+        let prevX = startX;
+        let prevY = startY;
+        for (const wp of wire.waypoints) {
+          dist = Math.min(dist, distToSegment(worldX, worldY, prevX, prevY, wp.x, wp.y));
+          prevX = wp.x;
+          prevY = wp.y;
+        }
+        dist = Math.min(dist, distToSegment(worldX, worldY, prevX, prevY, endX, endY));
+      } else {
+        dist = distToSegment(worldX, worldY, startX, startY, endX, endY);
+      }
     } else {
-      // Bezier
+      // Curved (bezier)
       const cpDist = Math.abs(endX - startX) * 0.5;
       dist = distToBezier(
         worldX, worldY, 
@@ -113,6 +206,69 @@ export const checkWireHit = (
   }
 
   return null;
+};
+
+export const checkWaypointHit = (
+  worldX: number, 
+  worldY: number, 
+  wires: Wire[], 
+  selectedWireIds: string[]
+): { wireId: string, index: number } | null => {
+  const HIT_THRESHOLD = 10;
+  for (const wire of wires) {
+    if (selectedWireIds.includes(wire.id) && wire.curveType === 'straight' && wire.waypoints) {
+      for (let i = 0; i < wire.waypoints.length; i++) {
+        const wp = wire.waypoints[i];
+        if (Math.hypot(worldX - wp.x, worldY - wp.y) < HIT_THRESHOLD) {
+          return { wireId: wire.id, index: i };
+        }
+      }
+    }
+  }
+  return null;
+};
+
+export const getClosestSegmentIndex = (
+  worldX: number, 
+  worldY: number, 
+  wire: Wire, 
+  nodes: CircuitNode[]
+): number => {
+  const sourceNode = nodes.find(n => n.id === wire.sourceNodeId);
+  const targetNode = nodes.find(n => n.id === wire.targetNodeId);
+  if (!sourceNode || !targetNode) return -1;
+
+  const startX = sourceNode.position.x + sourceNode.width;
+  const startY = sourceNode.position.y + (sourceNode.height / 2);
+  
+  const inputCount = targetNode.inputs.length;
+  const pinSpacing = targetNode.height / (inputCount + 1);
+  const endX = targetNode.position.x;
+  const endY = targetNode.position.y + (pinSpacing * (wire.targetPinIndex + 1));
+
+  let minD = Infinity;
+  let minIndex = -1;
+
+  let prevX = startX;
+  let prevY = startY;
+  const waypoints = wire.waypoints || [];
+  
+  for (let i = 0; i < waypoints.length; i++) {
+    const wp = waypoints[i];
+    const d = distToSegment(worldX, worldY, prevX, prevY, wp.x, wp.y);
+    if (d < minD) {
+      minD = d;
+      minIndex = i;
+    }
+    prevX = wp.x;
+    prevY = wp.y;
+  }
+  const d = distToSegment(worldX, worldY, prevX, prevY, endX, endY);
+  if (d < minD) {
+    minIndex = waypoints.length;
+  }
+
+  return minIndex;
 };
 
 // --- Drawing Functions ---
@@ -338,6 +494,9 @@ export const renderCircuit = (
   ctx.restore();
 
   // Draw Wires
+  const drawnRemoteSources = new Set<string>();
+  const drawnRemoteTargets = new Set<string>();
+
   wires.forEach(wire => {
     const sourceNode = nodes.find(n => n.id === wire.sourceNodeId);
     const targetNode = nodes.find(n => n.id === wire.targetNodeId);
@@ -358,23 +517,134 @@ export const renderCircuit = (
     ctx.beginPath();
     ctx.moveTo(s.x, s.y);
     
-    const curveType = wire.curveType || 'bezier';
+    const curveType = wire.curveType || 'curved';
+
+    if (curveType === 'remote') {
+      const sourceKey = `${wire.sourceNodeId}-${wire.sourcePinIndex}`;
+      const targetKey = `${wire.targetNodeId}-${wire.targetPinIndex}`;
+
+      // For remote wires, we draw a small stub and a label instead of a full wire
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(s.x + 15 * camera.zoom, s.y);
+      
+      ctx.moveTo(e.x, e.y);
+      ctx.lineTo(e.x - 15 * camera.zoom, e.y);
+      
+      ctx.lineWidth = 3 * camera.zoom;
+      ctx.strokeStyle = wire.state ? COLORS.wireActive : COLORS.wireInactive;
+      ctx.stroke();
+
+      // Draw remote ID label
+      ctx.font = `${10 * camera.zoom}px monospace`;
+      ctx.textBaseline = 'middle';
+      
+      if (!drawnRemoteSources.has(sourceKey)) {
+        drawnRemoteSources.add(sourceKey);
+        const sourceWires = wires.filter(w => w.curveType === 'remote' && w.sourceNodeId === wire.sourceNodeId && w.sourcePinIndex === wire.sourcePinIndex);
+        
+        ctx.textAlign = 'left';
+        let currentX = s.x + 20 * camera.zoom;
+        
+        ctx.fillStyle = COLORS.wireInactive;
+        ctx.fillText('[', currentX, s.y);
+        currentX += ctx.measureText('[').width;
+
+        for (let i = 0; i < sourceWires.length; i++) {
+          const w = sourceWires[i];
+          const idText = w.id.substring(0, 4);
+          const isSelected = selectedWireIds.includes(w.id);
+          const isHovered = interactionState.hoveredWireId === w.id;
+          
+          const textWidth = ctx.measureText(idText).width;
+
+          if (isSelected || isHovered) {
+            ctx.save();
+            ctx.fillStyle = isSelected ? COLORS.componentBorderSelected : 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(currentX - 2 * camera.zoom, s.y - 8 * camera.zoom, textWidth + 4 * camera.zoom, 16 * camera.zoom);
+            ctx.restore();
+          }
+
+          ctx.fillStyle = w.state ? COLORS.wireActive : COLORS.wireInactive;
+          ctx.fillText(idText, currentX, s.y);
+          currentX += textWidth;
+
+          if (i < sourceWires.length - 1) {
+            ctx.fillStyle = COLORS.wireInactive;
+            ctx.fillText(' - ', currentX, s.y);
+            currentX += ctx.measureText(' - ').width;
+          }
+        }
+        ctx.fillStyle = COLORS.wireInactive;
+        ctx.fillText(']', currentX, s.y);
+      }
+      
+      if (!drawnRemoteTargets.has(targetKey)) {
+        drawnRemoteTargets.add(targetKey);
+        const targetWires = wires.filter(w => w.curveType === 'remote' && w.targetNodeId === wire.targetNodeId && w.targetPinIndex === wire.targetPinIndex);
+        
+        ctx.textAlign = 'left';
+        
+        // Calculate total width
+        let totalWidth = ctx.measureText('[').width + ctx.measureText(']').width;
+        for (let i = 0; i < targetWires.length; i++) {
+          totalWidth += ctx.measureText(targetWires[i].id.substring(0, 4)).width;
+          if (i < targetWires.length - 1) {
+            totalWidth += ctx.measureText(' - ').width;
+          }
+        }
+
+        let currentX = e.x - 20 * camera.zoom - totalWidth;
+        
+        ctx.fillStyle = COLORS.wireInactive;
+        ctx.fillText('[', currentX, e.y);
+        currentX += ctx.measureText('[').width;
+
+        for (let i = 0; i < targetWires.length; i++) {
+          const w = targetWires[i];
+          const idText = w.id.substring(0, 4);
+          const isSelected = selectedWireIds.includes(w.id);
+          const isHovered = interactionState.hoveredWireId === w.id;
+          
+          const textWidth = ctx.measureText(idText).width;
+
+          if (isSelected || isHovered) {
+            ctx.save();
+            ctx.fillStyle = isSelected ? COLORS.componentBorderSelected : 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(currentX - 2 * camera.zoom, e.y - 8 * camera.zoom, textWidth + 4 * camera.zoom, 16 * camera.zoom);
+            ctx.restore();
+          }
+
+          ctx.fillStyle = w.state ? COLORS.wireActive : COLORS.wireInactive;
+          ctx.fillText(idText, currentX, e.y);
+          currentX += textWidth;
+
+          if (i < targetWires.length - 1) {
+            ctx.fillStyle = COLORS.wireInactive;
+            ctx.fillText(' - ', currentX, e.y);
+            currentX += ctx.measureText(' - ').width;
+          }
+        }
+        ctx.fillStyle = COLORS.wireInactive;
+        ctx.fillText(']', currentX, e.y);
+      }
+      
+      return; // Skip the rest of the wire drawing
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(s.x, s.y);
 
     if (curveType === 'straight') {
-      ctx.lineTo(e.x, e.y);
-    } else if (curveType === 'step') {
-      const midX = (s.x + e.x) / 2;
-      const radius = Math.min(10 * camera.zoom, Math.abs(e.y - s.y) / 2, Math.abs(midX - s.x));
-      if (radius > 1) {
-        ctx.arcTo(midX, s.y, midX, e.y, radius);
-        ctx.arcTo(midX, e.y, e.x, e.y, radius);
-        ctx.lineTo(e.x, e.y);
-      } else {
-        ctx.lineTo(midX, s.y);
-        ctx.lineTo(midX, e.y);
-        ctx.lineTo(e.x, e.y);
+      if (wire.waypoints && wire.waypoints.length > 0) {
+        for (const wp of wire.waypoints) {
+          const wpScreen = worldToScreen(wp.x, wp.y, camera);
+          ctx.lineTo(wpScreen.x, wpScreen.y);
+        }
       }
+      ctx.lineTo(e.x, e.y);
     } else {
+      // Curved
       const cpDist = Math.abs(e.x - s.x) * 0.5;
       ctx.bezierCurveTo(s.x + cpDist, s.y, e.x - cpDist, e.y, e.x, e.y);
     }
@@ -423,6 +693,23 @@ export const renderCircuit = (
       ctx.stroke();
       ctx.restore();
     }
+
+    // Draw Waypoints for selected straight wires
+    if (isSelected && curveType === 'straight' && wire.waypoints) {
+      ctx.save();
+      ctx.fillStyle = COLORS.wireActive;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5 * camera.zoom;
+      for (let i = 0; i < wire.waypoints.length; i++) {
+        const wp = wire.waypoints[i];
+        const wpScreen = worldToScreen(wp.x, wp.y, camera);
+        ctx.beginPath();
+        ctx.arc(wpScreen.x, wpScreen.y, 4 * camera.zoom, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
   });
 
   // Draw Nodes
@@ -458,6 +745,62 @@ export const renderCircuit = (
 
     ctx.restore();
   });
+
+  // Draw Active Wire
+  if (interactionState.mode === InteractionMode.WIRING && interactionState.activeWireStart) {
+    const sourceNode = nodes.find(n => n.id === interactionState.activeWireStart!.nodeId);
+    if (sourceNode) {
+      const startX = sourceNode.position.x + sourceNode.width;
+      const startY = sourceNode.position.y + (sourceNode.height / 2);
+      
+      const s = worldToScreen(startX, startY, camera);
+      const e = currentMousePos;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+
+      const curveType = interactionState.activeWireCurveType || 'curved';
+
+      if (curveType === 'remote') {
+        ctx.lineTo(s.x + 15 * camera.zoom, s.y);
+        
+        ctx.moveTo(e.x, e.y);
+        ctx.lineTo(e.x - 15 * camera.zoom, e.y);
+        
+        ctx.lineWidth = 3 * camera.zoom;
+        ctx.strokeStyle = COLORS.wireInactive;
+        ctx.stroke();
+
+        ctx.fillStyle = COLORS.wireInactive;
+        ctx.font = `${10 * camera.zoom}px monospace`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`[NEW]`, s.x + 20 * camera.zoom, s.y);
+        
+        ctx.textAlign = 'right';
+        ctx.fillText(`[NEW]`, e.x - 20 * camera.zoom, e.y);
+      } else if (curveType === 'straight') {
+        if (interactionState.activeWireStart.waypoints && interactionState.activeWireStart.waypoints.length > 0) {
+          for (const wp of interactionState.activeWireStart.waypoints) {
+            const wpScreen = worldToScreen(wp.x, wp.y, camera);
+            ctx.lineTo(wpScreen.x, wpScreen.y);
+          }
+        }
+        ctx.lineTo(e.x, e.y);
+        ctx.lineWidth = 3 * camera.zoom;
+        ctx.strokeStyle = COLORS.wireInactive;
+        ctx.stroke();
+      } else {
+        const cpDist = Math.abs(e.x - s.x) * 0.5;
+        ctx.bezierCurveTo(s.x + cpDist, s.y, e.x - cpDist, e.y, e.x, e.y);
+        ctx.lineWidth = 3 * camera.zoom;
+        ctx.strokeStyle = COLORS.wireInactive;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
 
   // Draw Selection Box
   if (interactionState.mode === InteractionMode.SELECTING) {
