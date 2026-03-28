@@ -269,6 +269,57 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleChangeNodeType = (newType: GateType) => {
+    if (!contextMenu?.nodeId) return;
+    
+    const nodeId = contextMenu.nodeId;
+    const config = COMPONENT_CONFIGS[newType];
+    
+    setNodes(prevNodes => prevNodes.map(node => {
+      if (node.id !== nodeId) return node;
+
+      let newInputs = [...node.inputs];
+      let newCount = newInputs.length;
+
+      const supportsVariableInputs = [
+        GateType.AND, 
+        GateType.OR, 
+        GateType.NAND, 
+        GateType.NOR, 
+        GateType.XOR
+      ].includes(newType);
+
+      if (!supportsVariableInputs) {
+        newCount = config.inputCount;
+      } else {
+        newCount = Math.max(2, newCount);
+      }
+
+      if (newCount > newInputs.length) {
+        for(let i = 0; i < (newCount - newInputs.length); i++) {
+          newInputs.push(false);
+        }
+      } else if (newCount < newInputs.length) {
+        newInputs = newInputs.slice(0, newCount);
+        
+        setWires(prevWires => prevWires.filter(w => 
+           !(w.targetNodeId === nodeId && w.targetPinIndex >= newCount)
+        ));
+      }
+
+      const newHeight = supportsVariableInputs ? (newCount + 1) * PIN_SPACING : config.height;
+
+      return {
+        ...node,
+        type: newType,
+        label: config.label,
+        width: config.width,
+        height: newHeight,
+        inputs: newInputs
+      };
+    }));
+  };
+
   // --- Save / Load ---
 
   const handleSaveProject = () => {
@@ -842,6 +893,7 @@ const App: React.FC = () => {
              }
           }}
           onInputCountChange={handleInputCountChange}
+          onChangeNodeType={handleChangeNodeType}
           onChangeWireCurveType={(type) => {
              if (contextMenu.wireId) {
                setWires(prev => prev.map(w => w.id === contextMenu.wireId ? { ...w, curveType: type } : w));

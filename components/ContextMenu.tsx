@@ -13,6 +13,7 @@ interface ContextMenuProps {
   onColorChange?: (color: string) => void;
   onInputCountChange?: (delta: number) => void;
   onChangeWireCurveType?: (type: WireCurveType) => void;
+  onChangeNodeType?: (type: GateType) => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onClose: () => void;
@@ -28,6 +29,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   onColorChange, 
   onInputCountChange,
   onChangeWireCurveType,
+  onChangeNodeType,
   onDuplicate, 
   onDelete, 
   onClose 
@@ -60,6 +62,25 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       className="fixed bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-50 py-1 min-w-[160px] flex flex-col"
       style={{ top: y, left: x }}
     >
+      {/* Node Type Selector */}
+      {nodeType && [GateType.AND, GateType.OR, GateType.NAND, GateType.NOR, GateType.XOR, GateType.NOT].includes(nodeType) && onChangeNodeType && (
+        <div className="px-4 py-2 border-b border-zinc-700">
+          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">Gate Type</div>
+          <select
+            value={nodeType}
+            onChange={(e) => { e.stopPropagation(); onChangeNodeType(e.target.value as GateType); }}
+            className="w-full bg-zinc-700 text-white text-xs rounded p-1 border border-zinc-600 outline-none focus:border-blue-500 cursor-pointer"
+          >
+            <option value={GateType.AND}>AND</option>
+            <option value={GateType.OR}>OR</option>
+            <option value={GateType.NAND}>NAND</option>
+            <option value={GateType.NOR}>NOR</option>
+            <option value={GateType.XOR}>XOR</option>
+            <option value={GateType.NOT}>NOT</option>
+          </select>
+        </div>
+      )}
+
       {/* Color Selector */}
       {(nodeType === GateType.OUTPUT_LAMP || !nodeType) && onColorChange && (
         <div className="px-4 py-2 border-b border-zinc-700">
