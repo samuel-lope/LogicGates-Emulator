@@ -137,24 +137,6 @@ const drawPin = (
   ctx.stroke();
 };
 
-// Image Cache System
-const imageCache = new Map<string, HTMLImageElement>();
-const failedImages = new Set<string>();
-
-const getOrLoadImage = (src: string): HTMLImageElement | null => {
-  if (failedImages.has(src)) return null;
-  if (imageCache.has(src)) {
-    const img = imageCache.get(src)!;
-    return img.complete ? img : null;
-  }
-  const img = new Image();
-  img.src = src;
-  img.onload = () => { /* Render loop will pick it up naturally */ };
-  img.onerror = () => { failedImages.add(src); };
-  imageCache.set(src, img);
-  return null;
-};
-
 const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected: boolean) => {
   const { x, y } = node.position;
   const config = COMPONENT_CONFIGS[node.type];
@@ -167,7 +149,6 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
   ctx.translate(x, y);
 
   // Draw Connecting Leads (if symbol is narrower than total width)
-  // We only draw leads for logic gates, generally not for Switch/Lamp/Clock if they are sized to fit.
   if (xOffset > 0 && node.type !== GateType.INPUT_SWITCH && node.type !== GateType.OUTPUT_LAMP && node.type !== GateType.CLOCK) {
     ctx.beginPath();
     ctx.strokeStyle = COLORS.componentBorder;
@@ -177,10 +158,19 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
     const inputCount = node.inputs.length;
     const pinSpacingIn = h / (inputCount + 1);
     
+    let cx = 0;
+    if (node.type === GateType.OR || node.type === GateType.NOR) {
+      cx = symbolW * (5/16);
+    } else if (node.type === GateType.XOR) {
+      cx = symbolW * (5/18);
+    }
+    
     for (let i = 0; i < inputCount; i++) {
         const py = pinSpacingIn * (i + 1);
+        const t = py / h;
+        const curveX = 2 * (1 - t) * t * cx;
         ctx.moveTo(0, py);
-        ctx.lineTo(xOffset, py);
+        ctx.lineTo(xOffset + curveX, py);
     }
     // Output lead
     if (config.outputCount > 0) {
@@ -194,143 +184,117 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
   // --- Translate to Symbol Origin ---
   ctx.translate(xOffset, 0);
 
-  // --- 1. Attempt to Draw Image ---
-  let imageDrawn = false;
-  if (config.imageSrc) {
-    const img = getOrLoadImage(config.imageSrc);
-    if (img) {
-      // Selection Glow for Image
-      if (selected) {
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
-        ctx.shadowBlur = 15;
-        ctx.strokeStyle = COLORS.componentBorderSelected;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(-2, -2, symbolW + 4, h + 4);
-      }
-      
-      ctx.drawImage(img, 0, 0, symbolW, h);
-      imageDrawn = true;
-      
-      // Reset Shadow
-      ctx.shadowBlur = 0;
-    }
+  // Draw Selection Glow
+  if (selected) {
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
+    ctx.shadowBlur = 15;
   }
 
-  // --- 2. Fallback Canvas Drawing (If no image or custom type) ---
-  if (!imageDrawn) {
+  ctx.lineWidth = selected ? 3 : 2;
+  ctx.strokeStyle = selected ? COLORS.componentBorderSelected : COLORS.componentBorder;
+  ctx.fillStyle = COLORS.componentBody;
+
+  if ([GateType.AND, GateType.NAND, GateType.OR, GateType.NOR, GateType.XOR, GateType.NOT].includes(node.type)) {
     ctx.beginPath();
-    ctx.lineWidth = selected ? 3 : 2;
-    ctx.strokeStyle = selected ? COLORS.componentBorderSelected : COLORS.componentBorder;
-    ctx.fillStyle = COLORS.componentBody;
-
-    if (selected) {
-      ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
-      ctx.shadowBlur = 10;
-    }
-
-    // NOTE: Use symbolW instead of w for the shape drawing
     switch (node.type) {
       case GateType.AND:
       case GateType.NAND:
         ctx.moveTo(0, 0);
         ctx.lineTo(symbolW / 2, 0);
-        ctx.arc(symbolW / 2, h / 2, h / 2, -Math.PI / 2, Math.PI / 2);
+        ctx.ellipse(symbolW / 2, h / 2, symbolW / 2, h / 2, 0, -Math.PI / 2, Math.PI / 2);
         ctx.lineTo(0, h);
         ctx.lineTo(0, 0);
+        ctx.fill();
+        ctx.stroke();
         break;
       case GateType.OR:
       case GateType.NOR:
         ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(symbolW / 4, h / 2, 0, h);
-        ctx.lineTo(symbolW / 2, h); 
-        ctx.quadraticCurveTo(symbolW, h, symbolW, h/2);
-        ctx.quadraticCurveTo(symbolW, 0, symbolW/2, 0);
+        ctx.quadraticCurveTo(symbolW * (5/16), h / 2, 0, h);
+        ctx.lineTo(symbolW * (3/16), h);
+        ctx.quadraticCurveTo(symbolW * (11/16), h, symbolW, h / 2);
+        ctx.quadraticCurveTo(symbolW * (11/16), 0, symbolW * (3/16), 0);
         ctx.lineTo(0, 0);
+        ctx.fill();
+        ctx.stroke();
         break;
       case GateType.XOR:
-        ctx.moveTo(10, 0);
-        ctx.quadraticCurveTo(symbolW / 4 + 10, h / 2, 10, h);
-        ctx.lineTo(symbolW / 2, h);
-        ctx.quadraticCurveTo(symbolW, h, symbolW, h/2);
-        ctx.quadraticCurveTo(symbolW, 0, symbolW/2, 0);
-        ctx.lineTo(10, 0);
+        ctx.moveTo(symbolW * (1/9), 0);
+        ctx.quadraticCurveTo(symbolW * (7/18), h / 2, symbolW * (1/9), h);
+        ctx.lineTo(symbolW * (5/18), h);
+        ctx.quadraticCurveTo(symbolW * (13/18), h, symbolW, h / 2);
+        ctx.quadraticCurveTo(symbolW * (13/18), 0, symbolW * (5/18), 0);
+        ctx.lineTo(symbolW * (1/9), 0);
+        ctx.fill();
         ctx.stroke(); 
+        
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(symbolW / 4, h / 2, 0, h);
+        ctx.quadraticCurveTo(symbolW * (5/18), h / 2, 0, h);
+        ctx.stroke();
         break;
       case GateType.NOT:
         ctx.moveTo(0, 0);
-        ctx.lineTo(symbolW - 10, h / 2);
+        ctx.lineTo(symbolW, h / 2);
         ctx.lineTo(0, h);
         ctx.lineTo(0, 0);
+        ctx.fill();
+        ctx.stroke();
         break;
-      case GateType.INPUT_SWITCH:
-        ctx.rect(0, 0, symbolW, h);
-        break;
-      case GateType.OUTPUT_LAMP:
-        ctx.arc(symbolW/2, h/2, symbolW/2 - 2, 0, Math.PI * 2);
-        break;
-      default:
-        ctx.rect(0, 0, symbolW, h);
     }
-
-    ctx.fill();
-    ctx.stroke();
-    ctx.shadowBlur = 0; 
-
-    // Negation Circle (Fallback only)
+    
+    // Negation Circles
     if ([GateType.NAND, GateType.NOR, GateType.NOT].includes(node.type)) {
       ctx.beginPath();
-      ctx.arc(symbolW - 5, h / 2, 4, 0, Math.PI * 2);
-      ctx.fillStyle = COLORS.componentBody;
+      ctx.arc(symbolW + 6, h / 2, 6, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     }
-  }
-
-  // Visuals for Switch/Lamp (Always drawn on top)
-  if (node.type === GateType.INPUT_SWITCH) {
+  } else if (node.type === GateType.INPUT_SWITCH) {
     ctx.beginPath();
-    ctx.rect(10, 10, symbolW - 20, h - 20);
+    ctx.roundRect(5, 10, 40, 30, 4);
+    ctx.fill();
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.roundRect(12, 15, 26, 20, 2);
     ctx.fillStyle = node.state ? COLORS.lampOn : '#111';
     ctx.fill();
-    ctx.fillStyle = COLORS.textColor;
-    ctx.font = '10px Inter';
-    ctx.textAlign = 'center';
-    ctx.fillText(node.state ? 'ON' : 'OFF', symbolW/2, h/2 + 3);
-  }
-
-  if (node.type === GateType.OUTPUT_LAMP) {
-    if (imageDrawn) {
-        ctx.beginPath();
-        ctx.arc(symbolW/2, h/2, (symbolW/2) * 0.6, 0, Math.PI * 2);
-    } else {
-        ctx.beginPath();
-        ctx.arc(symbolW/2, h/2, symbolW/2 - 8, 0, Math.PI * 2);
-    }
+  } else if (node.type === GateType.OUTPUT_LAMP) {
+    ctx.beginPath();
+    ctx.arc(25, 25, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
     
-    // Custom color support
     const onColor = node.color || COLORS.lampOn;
-    
     ctx.fillStyle = node.state ? onColor : COLORS.lampOff;
+    ctx.beginPath();
+    ctx.arc(25, 25, 10, 0, Math.PI * 2);
     ctx.fill();
     
     if (node.state) {
         ctx.shadowColor = onColor;
         ctx.shadowBlur = 20;
         ctx.stroke();
-        ctx.shadowBlur = 0;
     }
+  } else if (node.type === GateType.CLOCK) {
+    ctx.beginPath();
+    ctx.roundRect(5, 10, 40, 30, 4);
+    ctx.fill();
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(12, 25);
+    ctx.lineTo(18, 25);
+    ctx.lineTo(18, 16);
+    ctx.lineTo(32, 16);
+    ctx.lineTo(32, 34);
+    ctx.lineTo(38, 34);
+    ctx.lineTo(38, 25);
+    ctx.stroke();
   }
-  
-  // Label (Standard gates usually skip text if image drawn)
-  if (!imageDrawn && node.type !== GateType.INPUT_SWITCH && node.type !== GateType.OUTPUT_LAMP) {
-      ctx.fillStyle = COLORS.textColor;
-      ctx.font = 'bold 12px Inter';
-      ctx.textAlign = 'center';
-      ctx.fillText(config.label, symbolW / 2, h / 2 + 4);
-  }
+
+  ctx.shadowBlur = 0;
 
   ctx.restore();
 };
@@ -344,7 +308,8 @@ export const renderCircuit = (
   interactionState: any,
   selectedNodeIds: string[],
   selectedWireIds: string[],
-  currentMousePos: { x: number, y: number }
+  currentMousePos: { x: number, y: number },
+  time: number = 0
 ) => {
   const { width, height } = canvas;
   
@@ -352,28 +317,24 @@ export const renderCircuit = (
   ctx.fillStyle = COLORS.background;
   ctx.fillRect(0, 0, width, height);
 
-  // Grid
+  // Grid (Dots)
   ctx.save();
-  ctx.beginPath();
-  ctx.strokeStyle = COLORS.gridLines;
-  ctx.lineWidth = 1;
-  
-  const startX = Math.floor((0 - camera.x) / camera.zoom / GRID_SIZE) * GRID_SIZE;
-  const startY = Math.floor((0 - camera.y) / camera.zoom / GRID_SIZE) * GRID_SIZE;
-  const endX = Math.floor((width - camera.x) / camera.zoom / GRID_SIZE + 1) * GRID_SIZE;
-  const endY = Math.floor((height - camera.y) / camera.zoom / GRID_SIZE + 1) * GRID_SIZE;
-
-  for (let x = startX; x <= endX; x += GRID_SIZE) {
-    const screenX = (x * camera.zoom) + camera.x;
-    ctx.moveTo(screenX, 0);
-    ctx.lineTo(screenX, height);
+  const scaledGridSize = GRID_SIZE * camera.zoom;
+  if (scaledGridSize > 5) {
+    const offsetX = camera.x % scaledGridSize;
+    const offsetY = camera.y % scaledGridSize;
+    
+    ctx.fillStyle = COLORS.gridLines;
+    const dotRadius = Math.max(1, 1.5 * camera.zoom);
+    
+    ctx.beginPath();
+    for (let x = offsetX - scaledGridSize; x < width + scaledGridSize; x += scaledGridSize) {
+      for (let y = offsetY - scaledGridSize; y < height + scaledGridSize; y += scaledGridSize) {
+        ctx.rect(x - dotRadius, y - dotRadius, dotRadius * 2, dotRadius * 2);
+      }
+    }
+    ctx.fill();
   }
-  for (let y = startY; y <= endY; y += GRID_SIZE) {
-    const screenY = (y * camera.zoom) + camera.y;
-    ctx.moveTo(0, screenY);
-    ctx.lineTo(width, screenY);
-  }
-  ctx.stroke();
   ctx.restore();
 
   // Draw Wires
@@ -403,9 +364,16 @@ export const renderCircuit = (
       ctx.lineTo(e.x, e.y);
     } else if (curveType === 'step') {
       const midX = (s.x + e.x) / 2;
-      ctx.lineTo(midX, s.y);
-      ctx.lineTo(midX, e.y);
-      ctx.lineTo(e.x, e.y);
+      const radius = Math.min(10 * camera.zoom, Math.abs(e.y - s.y) / 2, Math.abs(midX - s.x));
+      if (radius > 1) {
+        ctx.arcTo(midX, s.y, midX, e.y, radius);
+        ctx.arcTo(midX, e.y, e.x, e.y, radius);
+        ctx.lineTo(e.x, e.y);
+      } else {
+        ctx.lineTo(midX, s.y);
+        ctx.lineTo(midX, e.y);
+        ctx.lineTo(e.x, e.y);
+      }
     } else {
       const cpDist = Math.abs(e.x - s.x) * 0.5;
       ctx.bezierCurveTo(s.x + cpDist, s.y, e.x - cpDist, e.y, e.x, e.y);
@@ -427,6 +395,8 @@ export const renderCircuit = (
       ctx.restore();
     }
 
+    // Base Wire
+    ctx.lineWidth = 3 * camera.zoom;
     if (wire.color) {
       ctx.strokeStyle = wire.color;
       if (wire.state) {
@@ -440,20 +410,20 @@ export const renderCircuit = (
         ctx.shadowBlur = 10;
       }
     }
-
-    ctx.lineWidth = 3 * camera.zoom;
     ctx.stroke();
     ctx.shadowBlur = 0;
-  });
 
-  // Active wire creation line
-  if (interactionState.mode === InteractionMode.WIRING && interactionState.activeWireStart) {
-    const { nodeId, pinIndex } = interactionState.activeWireStart;
-    const node = nodes.find(n => n.id === nodeId);
-    if (node) {
-        // ... (Drawing handled in App.tsx mainly, but placeholder here if needed)
+    // Flowing Animation for Active Wires
+    if (wire.state) {
+      ctx.save();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5 * camera.zoom;
+      ctx.setLineDash([8 * camera.zoom, 12 * camera.zoom]);
+      ctx.lineDashOffset = -(time / 30);
+      ctx.stroke();
+      ctx.restore();
     }
-  }
+  });
 
   // Draw Nodes
   nodes.forEach(node => {

@@ -97,7 +97,7 @@ const App: React.FC = () => {
 
     let animId: number;
 
-    const render = () => {
+    const render = (time: number) => {
       // Handle resize
       if (containerRef.current) {
         canvas.width = containerRef.current.clientWidth;
@@ -115,7 +115,8 @@ const App: React.FC = () => {
         currentInteraction,
         selectedNodeIdsRef.current,
         selectedWireIdsRef.current,
-        mousePosRef.current
+        mousePosRef.current,
+        time
       );
 
       // Draw active wire line if dragging
@@ -133,6 +134,7 @@ const App: React.FC = () => {
           ctx.strokeStyle = COLORS.wireActive;
           ctx.lineWidth = 2;
           ctx.setLineDash([5, 5]);
+          ctx.lineDashOffset = -(time / 50);
           ctx.stroke();
           ctx.setLineDash([]);
         }
@@ -141,7 +143,7 @@ const App: React.FC = () => {
       animId = requestAnimationFrame(render);
     };
 
-    render();
+    animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
   }, []);
 
