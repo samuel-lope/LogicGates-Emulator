@@ -532,7 +532,7 @@ export const renderCircuit = (
       ctx.lineTo(e.x - 15 * camera.zoom, e.y);
       
       ctx.lineWidth = 3 * camera.zoom;
-      ctx.strokeStyle = wire.state ? COLORS.wireActive : COLORS.wireInactive;
+      ctx.strokeStyle = wire.color ? wire.color : (wire.state ? COLORS.wireActive : COLORS.wireInactive);
       ctx.stroke();
 
       // Draw remote ID label
@@ -565,7 +565,7 @@ export const renderCircuit = (
             ctx.restore();
           }
 
-          ctx.fillStyle = w.state ? COLORS.wireActive : COLORS.wireInactive;
+          ctx.fillStyle = w.color ? w.color : (w.state ? COLORS.wireActive : COLORS.wireInactive);
           ctx.fillText(idText, currentX, s.y);
           currentX += textWidth;
 
@@ -615,7 +615,7 @@ export const renderCircuit = (
             ctx.restore();
           }
 
-          ctx.fillStyle = w.state ? COLORS.wireActive : COLORS.wireInactive;
+          ctx.fillStyle = w.color ? w.color : (w.state ? COLORS.wireActive : COLORS.wireInactive);
           ctx.fillText(idText, currentX, e.y);
           currentX += textWidth;
 

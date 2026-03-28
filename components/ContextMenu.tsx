@@ -60,11 +60,11 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       className="fixed bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-50 py-1 min-w-[160px] flex flex-col"
       style={{ top: y, left: x }}
     >
-      {/* LED Color Selector */}
-      {nodeType === GateType.OUTPUT_LAMP && onColorChange && (
+      {/* Color Selector */}
+      {(nodeType === GateType.OUTPUT_LAMP || !nodeType) && onColorChange && (
         <div className="px-4 py-2 border-b border-zinc-700">
-           <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">LED Color</div>
-           <div className="flex gap-2">
+           <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">{nodeType ? 'LED Color' : 'Wire Color'}</div>
+           <div className="flex gap-2 items-center">
              {Object.entries(LED_COLORS).map(([name, color]) => (
                <button
                  key={name}
@@ -74,6 +74,15 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
                  title={name}
                />
              ))}
+             {!nodeType && (
+               <button
+                 onClick={(e) => { e.stopPropagation(); onColorChange(''); }}
+                 className={`text-[10px] px-1.5 py-0.5 rounded border border-zinc-600 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors ${!currentColor ? 'bg-zinc-700 text-white' : ''}`}
+                 title="Default Color"
+               >
+                 Default
+               </button>
+             )}
            </div>
         </div>
       )}
@@ -132,13 +141,15 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
         </div>
       )}
 
-      <button 
-        onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
-        className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
-      >
-        <Copy size={14} />
-        Duplicate
-      </button>
+      {nodeType && (
+        <button 
+          onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+          className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
+        >
+          <Copy size={14} />
+          Duplicate
+        </button>
+      )}
       <button 
         onClick={(e) => { e.stopPropagation(); onDelete(); }}
         className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-zinc-700 hover:text-red-300 flex items-center gap-2 transition-colors cursor-pointer"
