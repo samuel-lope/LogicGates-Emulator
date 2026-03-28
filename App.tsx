@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [selectedWireIds, setSelectedWireIds] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string; wireId?: string } | null>(null);
+  const [isMatrixExpanded, setIsMatrixExpanded] = useState(false);
   
   // Interaction State
   const [interaction, setInteraction] = useState<InteractionState>({
@@ -905,8 +906,50 @@ const App: React.FC = () => {
         />
       )}
 
-      <div className="absolute top-4 right-4 pointer-events-none text-zinc-500 text-xs font-mono">
-        Nodes: {nodes.length} | Wires: {wires.length} | Zoom: {Math.round(camera.zoom * 100)}% | Selected: {selectedNodeIds.length + selectedWireIds.length}
+      <div className="absolute top-4 right-4 bg-[#1e1e1e]/90 border border-zinc-800 rounded p-2 text-zinc-500 text-xs font-mono pointer-events-auto shadow-lg max-w-md backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-4">
+          <span>Nodes: {nodes.length} | Wires: {wires.length} | Zoom: {Math.round(camera.zoom * 100)}% | Selected: {selectedNodeIds.length + selectedWireIds.length}</span>
+          <button 
+            onClick={() => setIsMatrixExpanded(!isMatrixExpanded)}
+            className="text-zinc-400 hover:text-zinc-300 underline cursor-pointer shrink-0"
+          >
+            {isMatrixExpanded ? 'Collapse' : 'Expand'}
+          </button>
+        </div>
+        
+        {isMatrixExpanded && (
+          <div className="mt-2 pt-2 border-t border-zinc-800 max-h-64 overflow-y-auto">
+            <div className="grid grid-cols-[1fr_auto_auto] gap-x-6 gap-y-1 text-left">
+              <div className="font-bold text-zinc-400 border-b border-zinc-800 pb-1">Object</div>
+              <div className="font-bold text-zinc-400 border-b border-zinc-800 pb-1">ID</div>
+              <div className="font-bold text-zinc-400 border-b border-zinc-800 pb-1">Status</div>
+              
+              {nodes.length === 0 && wires.length === 0 && (
+                <div className="col-span-3 text-zinc-600 italic py-1">None</div>
+              )}
+              
+              {nodes.map(n => (
+                <React.Fragment key={n.id}>
+                  <div className="truncate text-zinc-300" title={n.type}>{n.type}</div>
+                  <div className="text-zinc-500" title={n.id}>{n.id.substring(0, 4)}</div>
+                  <div className={n.state ? 'text-green-400' : 'text-zinc-500'}>
+                    {n.state ? 'true' : 'false'}
+                  </div>
+                </React.Fragment>
+              ))}
+              
+              {wires.map(w => (
+                <React.Fragment key={w.id}>
+                  <div className="truncate text-zinc-500" title="WIRE">WIRE</div>
+                  <div className="text-zinc-500" title={w.id}>{w.id.substring(0, 4)}</div>
+                  <div className={w.state ? 'text-green-400' : 'text-zinc-500'}>
+                    {w.state ? 'true' : 'false'}
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
