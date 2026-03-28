@@ -532,7 +532,7 @@ export const renderCircuit = (
       ctx.lineTo(e.x - 15 * camera.zoom, e.y);
       
       ctx.lineWidth = 3 * camera.zoom;
-      ctx.strokeStyle = wire.color ? wire.color : (wire.state ? COLORS.wireActive : COLORS.wireInactive);
+      ctx.strokeStyle = wire.state ? (wire.color || COLORS.wireActive) : COLORS.wireInactive;
       ctx.stroke();
 
       // Draw remote ID label
@@ -565,7 +565,7 @@ export const renderCircuit = (
             ctx.restore();
           }
 
-          ctx.fillStyle = w.color ? w.color : (w.state ? COLORS.wireActive : COLORS.wireInactive);
+          ctx.fillStyle = w.state ? (w.color || COLORS.wireActive) : COLORS.wireInactive;
           ctx.fillText(idText, currentX, s.y);
           currentX += textWidth;
 
@@ -615,7 +615,7 @@ export const renderCircuit = (
             ctx.restore();
           }
 
-          ctx.fillStyle = w.color ? w.color : (w.state ? COLORS.wireActive : COLORS.wireInactive);
+          ctx.fillStyle = w.state ? (w.color || COLORS.wireActive) : COLORS.wireInactive;
           ctx.fillText(idText, currentX, e.y);
           currentX += textWidth;
 
@@ -667,18 +667,13 @@ export const renderCircuit = (
 
     // Base Wire
     ctx.lineWidth = 3 * camera.zoom;
-    if (wire.color) {
-      ctx.strokeStyle = wire.color;
-      if (wire.state) {
-        ctx.shadowColor = wire.color;
-        ctx.shadowBlur = 10;
-      }
+    if (wire.state) {
+      ctx.strokeStyle = wire.color || COLORS.wireActive;
+      ctx.shadowColor = wire.color || COLORS.wireActive;
+      ctx.shadowBlur = 10;
     } else {
-      ctx.strokeStyle = wire.state ? COLORS.wireActive : COLORS.wireInactive;
-      if (wire.state) {
-        ctx.shadowColor = COLORS.wireActive;
-        ctx.shadowBlur = 10;
-      }
+      ctx.strokeStyle = COLORS.wireInactive;
+      ctx.shadowBlur = 0;
     }
     ctx.stroke();
     ctx.shadowBlur = 0;
