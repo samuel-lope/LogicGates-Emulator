@@ -9,7 +9,6 @@ interface ToolbarProps {
   selectedGateType: GateType | null;
   onSave: () => void;
   onLoad: (file: File) => void;
-  onOpenKarnaugh: () => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({ 
@@ -17,8 +16,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   currentMode, 
   selectedGateType,
   onSave,
-  onLoad,
-  onOpenKarnaugh
+  onLoad
 }) => {
   const gates = Object.values(COMPONENT_CONFIGS);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,17 +85,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
             >
               <MousePointer2 size={18} />
               <span className="font-medium">Selection / Drag</span>
-            </button>
-            
-            <button
-              onClick={onOpenKarnaugh}
-              className="w-full flex items-center gap-3 p-3 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700/50 hover:border-zinc-500 transition-all duration-200"
-            >
-              <Grid size={18} className="text-purple-400" />
-              <div className="flex flex-col items-start">
-                <span className="font-medium text-sm">Truth Table</span>
-                <span className="text-[10px] text-zinc-500">Auto-Generate Circuit</span>
-              </div>
             </button>
           </div>
         </div>

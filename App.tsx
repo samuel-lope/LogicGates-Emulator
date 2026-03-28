@@ -12,10 +12,8 @@ import {
 import { COMPONENT_CONFIGS, COLORS, PIN_SPACING } from './constants';
 import { renderCircuit, screenToWorld, worldToScreen, checkWireHit } from './services/renderer';
 import { propagateCircuit } from './services/circuitEngine';
-import { generateCircuitFromTruthTable } from './services/quineMcCluskey';
 import Toolbar from './components/Toolbar';
 import { ContextMenu } from './components/ContextMenu';
-import { KarnaughModal } from './components/KarnaughModal';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -30,7 +28,6 @@ const App: React.FC = () => {
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [selectedWireIds, setSelectedWireIds] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
-  const [isKarnaughOpen, setIsKarnaughOpen] = useState(false);
   
   // Interaction State
   const [interaction, setInteraction] = useState<InteractionState>({
@@ -319,32 +316,6 @@ const App: React.FC = () => {
     };
     reader.readAsText(file);
   };
-
-  // --- Karnaugh Generator ---
-  
-  const handleKarnaughGenerate = (numVars: number, truthTable: boolean[]) => {
-    // Determine spawn position (center of current view)
-    const centerWorld = screenToWorld(
-        (containerRef.current?.clientWidth || 800) / 2,
-        (containerRef.current?.clientHeight || 600) / 2,
-        camera
-    );
-    // Shift slightly left so the circuit centers better
-    centerWorld.x -= 300; 
-    centerWorld.y -= 200;
-
-    const { nodes: newNodes, wires: newWires } = generateCircuitFromTruthTable(
-        numVars, 
-        truthTable, 
-        centerWorld
-    );
-
-    // Merge into existing circuit
-    setNodes(prev => [...prev, ...newNodes]);
-    setWires(prev => [...prev, ...newWires]);
-    setIsKarnaughOpen(false);
-  };
-
 
   // --- Interaction Handlers ---
 
@@ -694,7 +665,6 @@ const App: React.FC = () => {
         selectedGateType={interaction.placingType}
         onSave={handleSaveProject}
         onLoad={handleLoadProject}
-        onOpenKarnaugh={() => setIsKarnaughOpen(true)}
       />
       
       <div 
@@ -711,12 +681,6 @@ const App: React.FC = () => {
           className="block"
         />
       </div>
-
-      <KarnaughModal 
-        isOpen={isKarnaughOpen}
-        onClose={() => setIsKarnaughOpen(false)}
-        onGenerate={handleKarnaughGenerate}
-      />
 
       {contextMenu && (
         <ContextMenu 
