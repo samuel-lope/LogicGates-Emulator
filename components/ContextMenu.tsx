@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Copy, Trash2, Minus, Plus, Activity, MoveRight, Wifi, MoreHorizontal } from 'lucide-react';
 import { GateType, WireCurveType, WireStyle } from '../types';
-import { LED_COLORS } from '../constants';
+import { LED_COLORS, GATE_COLORS } from '../constants';
 
 interface ContextMenuProps {
   x: number;
@@ -60,6 +60,15 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     GateType.XOR
   ].includes(nodeType);
 
+  const isLogicGate = nodeType && [
+    GateType.AND, 
+    GateType.OR, 
+    GateType.NAND, 
+    GateType.NOR, 
+    GateType.XOR,
+    GateType.NOT
+  ].includes(nodeType);
+
   return (
     <div 
       ref={menuRef}
@@ -67,7 +76,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       style={{ top: y, left: x }}
     >
       {/* Node Type Selector */}
-      {nodeType && [GateType.AND, GateType.OR, GateType.NAND, GateType.NOR, GateType.XOR, GateType.NOT].includes(nodeType) && onChangeNodeType && (
+      {isLogicGate && onChangeNodeType && (
         <div className="px-4 py-2 border-b border-zinc-700">
           <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">Gate Type</div>
           <select
@@ -86,20 +95,22 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       )}
 
       {/* Color Selector */}
-      {(nodeType === GateType.OUTPUT_LAMP || !nodeType) && onColorChange && (
+      {(nodeType === GateType.OUTPUT_LAMP || !nodeType || isLogicGate) && onColorChange && (
         <div className="px-4 py-2 border-b border-zinc-700">
-           <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">{nodeType ? 'LED Color' : 'Wire Color'}</div>
+           <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">
+             {isLogicGate ? 'Gate Color' : nodeType ? 'LED Color' : 'Wire Color'}
+           </div>
            <div className="flex gap-2 items-center flex-wrap">
-             {Object.entries(LED_COLORS).map(([name, color]) => (
+             {Object.entries(isLogicGate ? GATE_COLORS : LED_COLORS).map(([name, color]) => (
                <button
                  key={name}
                  onClick={(e) => { e.stopPropagation(); onColorChange(color); }}
                  className={`w-4 h-4 rounded-full border border-zinc-600 transition-transform hover:scale-110 cursor-pointer ${currentColor === color ? 'ring-1 ring-white' : ''}`}
-                 style={{ backgroundColor: color, boxShadow: `0 0 5px ${color}40` }}
+                 style={{ backgroundColor: color, boxShadow: isLogicGate ? 'none' : `0 0 5px ${color}40` }}
                  title={name}
                />
              ))}
-             {!nodeType && (
+             {(!nodeType || isLogicGate) && (
                <button
                  onClick={(e) => { e.stopPropagation(); onColorChange(''); }}
                  className={`text-[10px] px-1.5 py-0.5 rounded border border-zinc-600 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors ${!currentColor ? 'bg-zinc-700 text-white' : ''}`}

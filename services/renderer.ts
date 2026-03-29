@@ -348,7 +348,9 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
 
   ctx.lineWidth = selected ? 3 : 2;
   ctx.strokeStyle = selected ? COLORS.componentBorderSelected : COLORS.componentBorder;
-  ctx.fillStyle = COLORS.componentBody;
+  
+  const fillColor = node.color || COLORS.componentBody;
+  ctx.fillStyle = fillColor;
 
   if ([GateType.AND, GateType.NAND, GateType.OR, GateType.NOR, GateType.XOR, GateType.NOT].includes(node.type)) {
     ctx.beginPath();
@@ -407,6 +409,7 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
       ctx.stroke();
     }
   } else if (node.type === GateType.INPUT_SWITCH) {
+    ctx.fillStyle = COLORS.componentBody;
     ctx.beginPath();
     ctx.roundRect(5, 10, 40, 30, 4);
     ctx.fill();
@@ -417,6 +420,7 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
     ctx.fillStyle = node.state ? COLORS.lampOn : '#111';
     ctx.fill();
   } else if (node.type === GateType.OUTPUT_LAMP) {
+    ctx.fillStyle = COLORS.componentBody;
     ctx.beginPath();
     ctx.arc(25, 25, 18, 0, Math.PI * 2);
     ctx.fill();
@@ -434,6 +438,7 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
         ctx.stroke();
     }
   } else if (node.type === GateType.CLOCK) {
+    ctx.fillStyle = COLORS.componentBody;
     ctx.beginPath();
     ctx.roundRect(5, 10, 40, 30, 4);
     ctx.fill();

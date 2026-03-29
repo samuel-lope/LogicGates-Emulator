@@ -30,7 +30,7 @@ export interface CircuitNode {
   width: number;
   height: number;
   label: string;
-  color?: string; // Optional custom color (e.g. for LEDs/Wires)
+  color?: string; // Optional custom color (e.g. for LEDs/Wires/Gates)
 }
 
 export type WireCurveType = 'curved' | 'straight' | 'remote';

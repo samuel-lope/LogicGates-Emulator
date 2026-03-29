@@ -28,6 +28,17 @@ export const LED_COLORS = {
   CYAN: '#00ffff',
 };
 
+export const GATE_COLORS = {
+  DEFAULT: '#333333',
+  RED: '#5a2a2a',
+  GREEN: '#2a5a2a',
+  BLUE: '#2a2a5a',
+  YELLOW: '#5a5a2a',
+  PURPLE: '#4a2a5a',
+  CYAN: '#2a5a5a',
+  ORANGE: '#5a3a2a',
+};
+
 export const GRID_SIZE = 20;
 export const PIN_SPACING = 20; // Vertical space per pin/gap
 
