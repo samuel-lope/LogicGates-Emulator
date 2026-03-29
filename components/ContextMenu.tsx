@@ -178,7 +178,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       )}
 
       {/* Wire Style Selector */}
-      {wireStyle && onChangeWireStyle && wireCurveType !== 'remote' && (
+      {!nodeType && wireStyle && onChangeWireStyle && wireCurveType !== 'remote' && (
         <div className="px-4 py-2 border-b border-zinc-700">
           <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">Wire Style</div>
           <div className="flex gap-1 bg-zinc-700 rounded p-1">

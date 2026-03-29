@@ -885,8 +885,8 @@ const App: React.FC = () => {
           nodeType={nodes.find(n => n.id === contextMenu.nodeId)?.type}
           currentColor={nodes.find(n => n.id === contextMenu.nodeId)?.color || wires.find(w => w.id === contextMenu.wireId)?.color}
           inputCount={nodes.find(n => n.id === contextMenu.nodeId)?.inputs.length}
-          wireCurveType={wires.find(w => w.id === contextMenu.wireId)?.curveType}
-          wireStyle={wires.find(w => w.id === contextMenu.wireId)?.wireStyle || 'solid'}
+          wireCurveType={contextMenu.wireId ? wires.find(w => w.id === contextMenu.wireId)?.curveType : undefined}
+          wireStyle={contextMenu.wireId ? (wires.find(w => w.id === contextMenu.wireId)?.wireStyle || 'solid') : undefined}
           onColorChange={(color) => {
              if (contextMenu.nodeId) {
                setNodes(prev => prev.map(n => n.id === contextMenu.nodeId ? { ...n, color } : n));
