@@ -11,11 +11,13 @@ interface ContextMenuProps {
   inputCount?: number;
   wireCurveType?: WireCurveType;
   wireStyle?: WireStyle;
+  shape?: 'circle' | 'square';
   onColorChange?: (color: string) => void;
   onInputCountChange?: (delta: number) => void;
   onChangeWireCurveType?: (type: WireCurveType) => void;
   onChangeWireStyle?: (style: WireStyle) => void;
   onChangeNodeType?: (type: GateType) => void;
+  onChangeShape?: (shape: 'circle' | 'square') => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onClose: () => void;
@@ -29,11 +31,13 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   inputCount,
   wireCurveType,
   wireStyle,
+  shape,
   onColorChange, 
   onInputCountChange,
   onChangeWireCurveType,
   onChangeWireStyle,
   onChangeNodeType,
+  onChangeShape,
   onDuplicate, 
   onDelete, 
   onClose 
@@ -94,23 +98,46 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
         </div>
       )}
 
+      {/* Shape Selector */}
+      {nodeType === GateType.DERIVATION && onChangeShape && (
+        <div className="px-4 py-2 border-b border-zinc-700">
+          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">Shape</div>
+          <div className="flex gap-1 bg-zinc-700 rounded p-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onChangeShape('circle'); }}
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${shape === 'circle' || !shape ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title="Circle"
+            >
+              <div className="w-3 h-3 rounded-full border-2 border-current" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onChangeShape('square'); }}
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${shape === 'square' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title="Square"
+            >
+              <div className="w-3 h-3 border-2 border-current" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Color Selector */}
-      {(nodeType === GateType.OUTPUT_LAMP || !nodeType || isLogicGate) && onColorChange && (
+      {(nodeType === GateType.OUTPUT_LAMP || nodeType === GateType.DERIVATION || !nodeType || isLogicGate) && onColorChange && (
         <div className="px-4 py-2 border-b border-zinc-700">
            <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">
-             {isLogicGate ? 'Gate Color' : nodeType ? 'LED Color' : 'Wire Color'}
+             {isLogicGate ? 'Gate Color' : nodeType === GateType.DERIVATION ? 'Derivation Color' : nodeType ? 'LED Color' : 'Wire Color'}
            </div>
            <div className="flex gap-2 items-center flex-wrap">
-             {Object.entries(isLogicGate ? GATE_COLORS : LED_COLORS).map(([name, color]) => (
+             {Object.entries(isLogicGate || nodeType === GateType.DERIVATION ? GATE_COLORS : LED_COLORS).map(([name, color]) => (
                <button
                  key={name}
                  onClick={(e) => { e.stopPropagation(); onColorChange(color); }}
                  className={`w-4 h-4 rounded-full border border-zinc-600 transition-transform hover:scale-110 cursor-pointer ${currentColor === color ? 'ring-1 ring-white' : ''}`}
-                 style={{ backgroundColor: color, boxShadow: isLogicGate ? 'none' : `0 0 5px ${color}40` }}
+                 style={{ backgroundColor: color, boxShadow: isLogicGate || nodeType === GateType.DERIVATION ? 'none' : `0 0 5px ${color}40` }}
                  title={name}
                />
              ))}
-             {(!nodeType || isLogicGate) && (
+             {(!nodeType || isLogicGate || nodeType === GateType.DERIVATION) && (
                <button
                  onClick={(e) => { e.stopPropagation(); onColorChange(''); }}
                  className={`text-[10px] px-1.5 py-0.5 rounded border border-zinc-600 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors ${!currentColor ? 'bg-zinc-700 text-white' : ''}`}

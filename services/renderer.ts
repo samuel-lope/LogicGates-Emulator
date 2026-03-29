@@ -453,6 +453,16 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
     ctx.lineTo(38, 34);
     ctx.lineTo(38, 25);
     ctx.stroke();
+  } else if (node.type === GateType.DERIVATION) {
+    ctx.fillStyle = node.color || COLORS.componentBody;
+    ctx.beginPath();
+    if (node.shape === 'square') {
+      ctx.rect(0, 0, w, h);
+    } else {
+      ctx.arc(w / 2, h / 2, w / 2, 0, Math.PI * 2);
+    }
+    ctx.fill();
+    ctx.stroke();
   }
 
   ctx.shadowBlur = 0;

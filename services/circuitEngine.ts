@@ -30,6 +30,7 @@ export const computeNodeLogic = (node: CircuitNode, inputStates: boolean[]): boo
       // State handled by timer in main loop
       return node.state; 
     case GateType.OUTPUT_LAMP:
+    case GateType.DERIVATION:
       // Pass-through for visualization (taking the first input)
       return inputStates[0] || false;
     default:
@@ -90,8 +91,9 @@ export const propagateCircuit = (
       // Reset inputs that have no wires connected (default to false / Floating Low)
       // This is important if a wire was deleted
       for(let i=0; i<currentInputs.length; i++) {
-        const wire = incomingWires.find(w => w.targetPinIndex === i);
-        const signal = wire ? wire.state : false;
+        const wiresForPin = incomingWires.filter(w => w.targetPinIndex === i);
+        // Wired-OR: if any connected wire is high, the input is high
+        const signal = wiresForPin.length > 0 ? wiresForPin.some(w => w.state) : false;
         
         if (currentInputs[i] !== signal) {
             currentInputs[i] = signal;

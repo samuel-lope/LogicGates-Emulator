@@ -740,6 +740,8 @@ const App: React.FC = () => {
     // Complete Wiring
     if (interaction.mode === InteractionMode.WIRING && interaction.activeWireStart) {
       if (interaction.hoveredPin && interaction.hoveredPin.type === 'input') {
+        const targetNode = nodes.find(n => n.id === interaction.hoveredPin!.nodeId);
+        
         const newWire: Wire = {
           id: generateId(),
           sourceNodeId: interaction.activeWireStart.nodeId,
@@ -755,12 +757,17 @@ const App: React.FC = () => {
           w.targetNodeId === newWire.targetNodeId && w.targetPinIndex === newWire.targetPinIndex
         );
 
-        if (!exists) {
-          const newWires = [...wires, newWire];
-          const res = propagateCircuit(nodes, newWires);
-          setNodes(res.nodes);
-          setWires(res.wires);
+        let newWires = [...wires];
+        if (exists && targetNode && targetNode.type !== GateType.DERIVATION) {
+          // Replace existing wire for non-derivation nodes
+          newWires = newWires.filter(w => !(w.targetNodeId === newWire.targetNodeId && w.targetPinIndex === newWire.targetPinIndex));
         }
+        
+        newWires.push(newWire);
+        
+        const res = propagateCircuit(nodes, newWires);
+        setNodes(res.nodes);
+        setWires(res.wires);
       } else if (interaction.activeWireCurveType === 'straight') {
         // Add waypoint on click if straight wire and not hitting a pin
         const rect = canvasRef.current!.getBoundingClientRect();
@@ -887,11 +894,17 @@ const App: React.FC = () => {
           inputCount={nodes.find(n => n.id === contextMenu.nodeId)?.inputs.length}
           wireCurveType={contextMenu.wireId ? wires.find(w => w.id === contextMenu.wireId)?.curveType : undefined}
           wireStyle={contextMenu.wireId ? (wires.find(w => w.id === contextMenu.wireId)?.wireStyle || 'solid') : undefined}
+          shape={nodes.find(n => n.id === contextMenu.nodeId)?.shape}
           onColorChange={(color) => {
              if (contextMenu.nodeId) {
                setNodes(prev => prev.map(n => n.id === contextMenu.nodeId ? { ...n, color } : n));
              } else if (contextMenu.wireId) {
                setWires(prev => prev.map(w => w.id === contextMenu.wireId ? { ...w, color } : w));
+             }
+          }}
+          onChangeShape={(shape) => {
+             if (contextMenu.nodeId) {
+               setNodes(prev => prev.map(n => n.id === contextMenu.nodeId ? { ...n, shape } : n));
              }
           }}
           onInputCountChange={handleInputCountChange}

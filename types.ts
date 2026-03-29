@@ -7,7 +7,8 @@ export enum GateType {
   XOR = 'XOR',
   INPUT_SWITCH = 'INPUT_SWITCH',
   OUTPUT_LAMP = 'OUTPUT_LAMP',
-  CLOCK = 'CLOCK'
+  CLOCK = 'CLOCK',
+  DERIVATION = 'DERIVATION'
 }
 
 export interface Position {
@@ -31,6 +32,7 @@ export interface CircuitNode {
   height: number;
   label: string;
   color?: string; // Optional custom color (e.g. for LEDs/Wires/Gates)
+  shape?: 'circle' | 'square'; // For Derivation
 }
 
 export type WireCurveType = 'curved' | 'straight' | 'remote';
