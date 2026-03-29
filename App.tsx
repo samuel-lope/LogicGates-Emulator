@@ -919,18 +919,22 @@ const App: React.FC = () => {
         
         {isMatrixExpanded && (
           <div className="mt-2 pt-2 border-t border-zinc-800 max-h-64 overflow-y-auto">
-            <div className="grid grid-cols-[1fr_auto_auto] gap-x-6 gap-y-1 text-left">
+            <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-6 gap-y-1 text-left">
               <div className="font-bold text-zinc-400 border-b border-zinc-800 pb-1">Object</div>
+              <div className="font-bold text-zinc-400 border-b border-zinc-800 pb-1">Origin</div>
+              <div className="font-bold text-zinc-400 border-b border-zinc-800 pb-1">Target</div>
               <div className="font-bold text-zinc-400 border-b border-zinc-800 pb-1">ID</div>
               <div className="font-bold text-zinc-400 border-b border-zinc-800 pb-1">Status</div>
               
               {nodes.length === 0 && wires.length === 0 && (
-                <div className="col-span-3 text-zinc-600 italic py-1">None</div>
+                <div className="col-span-5 text-zinc-600 italic py-1">None</div>
               )}
               
               {nodes.map(n => (
                 <React.Fragment key={n.id}>
                   <div className="truncate text-zinc-300" title={n.type}>{n.type}</div>
+                  <div className="text-zinc-600 text-center">-</div>
+                  <div className="text-zinc-600 text-center">-</div>
                   <div className="text-zinc-500" title={n.id}>{n.id.substring(0, 4)}</div>
                   <div className={n.state ? 'text-green-400' : 'text-zinc-500'}>
                     {n.state ? 'true' : 'false'}
@@ -941,6 +945,8 @@ const App: React.FC = () => {
               {wires.map(w => (
                 <React.Fragment key={w.id}>
                   <div className="truncate text-zinc-500" title="WIRE">WIRE</div>
+                  <div className="text-zinc-400" title={w.sourceNodeId}>{w.sourceNodeId.substring(0, 4)}</div>
+                  <div className="text-zinc-400" title={`${w.targetNodeId}-${w.targetPinIndex + 1}`}>{w.targetNodeId.substring(0, 4)}-{w.targetPinIndex + 1}</div>
                   <div className="text-zinc-500" title={w.id}>{w.id.substring(0, 4)}</div>
                   <div className={w.state ? 'text-green-400' : 'text-zinc-500'}>
                     {w.state ? 'true' : 'false'}
