@@ -22,6 +22,10 @@ export const LED_COLORS = {
   BLUE: '#00ccff',
   YELLOW: '#ffcc00',
   WHITE: '#ffffff',
+  ORANGE: '#ff8800',
+  PURPLE: '#9900ff',
+  PINK: '#ff00ff',
+  CYAN: '#00ffff',
 };
 
 export const GRID_SIZE = 20;

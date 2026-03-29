@@ -651,6 +651,7 @@ export const renderCircuit = (
     
     const isSelected = selectedWireIds.includes(wire.id);
     const isHovered = interactionState.hoveredWireId === wire.id;
+    const wireStyle = wire.wireStyle || 'solid';
 
     if (isSelected || isHovered) {
       // Draw highlight under the wire
@@ -665,28 +666,56 @@ export const renderCircuit = (
       ctx.restore();
     }
 
-    // Base Wire
-    ctx.lineWidth = 3 * camera.zoom;
-    if (wire.state) {
-      ctx.strokeStyle = wire.color || COLORS.wireActive;
-      ctx.shadowColor = wire.color || COLORS.wireActive;
-      ctx.shadowBlur = 10;
-    } else {
-      ctx.strokeStyle = COLORS.wireInactive;
-      ctx.shadowBlur = 0;
-    }
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // Flowing Animation for Active Wires
-    if (wire.state) {
+    if (wireStyle === 'dots') {
+      // Dots Style
       ctx.save();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5 * camera.zoom;
-      ctx.setLineDash([8 * camera.zoom, 12 * camera.zoom]);
-      ctx.lineDashOffset = -(time / 30);
+      ctx.lineWidth = 3 * camera.zoom;
+      
+      const dotColor = wire.state ? (wire.color || COLORS.wireActive) : COLORS.wireInactive;
+      ctx.strokeStyle = dotColor;
+      
+      if (wire.state) {
+        ctx.shadowColor = dotColor;
+        ctx.shadowBlur = 10;
+      }
+
+      // Create a dashed line that looks like dots
+      // The dash length is 0 (so it's just a point), and the gap is the spacing
+      const dotSpacing = 15 * camera.zoom;
+      ctx.setLineDash([0, dotSpacing]);
+      ctx.lineCap = 'round'; // This makes the 0-length dashes round (dots)
+      
+      // Animate the dots if active
+      if (wire.state) {
+        ctx.lineDashOffset = -(time / 20) % dotSpacing;
+      }
+      
       ctx.stroke();
       ctx.restore();
+    } else {
+      // Solid Style (Base Wire)
+      ctx.lineWidth = 3 * camera.zoom;
+      if (wire.state) {
+        ctx.strokeStyle = wire.color || COLORS.wireActive;
+        ctx.shadowColor = wire.color || COLORS.wireActive;
+        ctx.shadowBlur = 10;
+      } else {
+        ctx.strokeStyle = COLORS.wireInactive;
+        ctx.shadowBlur = 0;
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Flowing Animation for Active Wires
+      if (wire.state) {
+        ctx.save();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5 * camera.zoom;
+        ctx.setLineDash([8 * camera.zoom, 12 * camera.zoom]);
+        ctx.lineDashOffset = -(time / 30);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
 
     // Draw Waypoints for selected straight wires

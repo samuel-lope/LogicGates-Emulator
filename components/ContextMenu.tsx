@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Copy, Trash2, Minus, Plus, Activity, MoveRight, Wifi } from 'lucide-react';
-import { GateType, WireCurveType } from '../types';
+import { Copy, Trash2, Minus, Plus, Activity, MoveRight, Wifi, MoreHorizontal } from 'lucide-react';
+import { GateType, WireCurveType, WireStyle } from '../types';
 import { LED_COLORS } from '../constants';
 
 interface ContextMenuProps {
@@ -10,9 +10,11 @@ interface ContextMenuProps {
   currentColor?: string;
   inputCount?: number;
   wireCurveType?: WireCurveType;
+  wireStyle?: WireStyle;
   onColorChange?: (color: string) => void;
   onInputCountChange?: (delta: number) => void;
   onChangeWireCurveType?: (type: WireCurveType) => void;
+  onChangeWireStyle?: (style: WireStyle) => void;
   onChangeNodeType?: (type: GateType) => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -26,9 +28,11 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   currentColor, 
   inputCount,
   wireCurveType,
+  wireStyle,
   onColorChange, 
   onInputCountChange,
   onChangeWireCurveType,
+  onChangeWireStyle,
   onChangeNodeType,
   onDuplicate, 
   onDelete, 
@@ -85,7 +89,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       {(nodeType === GateType.OUTPUT_LAMP || !nodeType) && onColorChange && (
         <div className="px-4 py-2 border-b border-zinc-700">
            <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">{nodeType ? 'LED Color' : 'Wire Color'}</div>
-           <div className="flex gap-2 items-center">
+           <div className="flex gap-2 items-center flex-wrap">
              {Object.entries(LED_COLORS).map(([name, color]) => (
                <button
                  key={name}
@@ -157,6 +161,29 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
               title="Remote"
             >
               <Wifi size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Wire Style Selector */}
+      {wireStyle && onChangeWireStyle && wireCurveType !== 'remote' && (
+        <div className="px-4 py-2 border-b border-zinc-700">
+          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">Wire Style</div>
+          <div className="flex gap-1 bg-zinc-700 rounded p-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onChangeWireStyle('solid'); }}
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${wireStyle === 'solid' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title="Solid"
+            >
+              <Minus size={14} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onChangeWireStyle('dots'); }}
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${wireStyle === 'dots' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title="Dots"
+            >
+              <MoreHorizontal size={14} />
             </button>
           </div>
         </div>

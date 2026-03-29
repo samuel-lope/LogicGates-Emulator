@@ -886,6 +886,7 @@ const App: React.FC = () => {
           currentColor={nodes.find(n => n.id === contextMenu.nodeId)?.color || wires.find(w => w.id === contextMenu.wireId)?.color}
           inputCount={nodes.find(n => n.id === contextMenu.nodeId)?.inputs.length}
           wireCurveType={wires.find(w => w.id === contextMenu.wireId)?.curveType}
+          wireStyle={wires.find(w => w.id === contextMenu.wireId)?.wireStyle || 'solid'}
           onColorChange={(color) => {
              if (contextMenu.nodeId) {
                setNodes(prev => prev.map(n => n.id === contextMenu.nodeId ? { ...n, color } : n));
@@ -898,6 +899,11 @@ const App: React.FC = () => {
           onChangeWireCurveType={(type) => {
              if (contextMenu.wireId) {
                setWires(prev => prev.map(w => w.id === contextMenu.wireId ? { ...w, curveType: type } : w));
+             }
+          }}
+          onChangeWireStyle={(style) => {
+             if (contextMenu.wireId) {
+               setWires(prev => prev.map(w => w.id === contextMenu.wireId ? { ...w, wireStyle: style } : w));
              }
           }}
           onDelete={deleteSelected}

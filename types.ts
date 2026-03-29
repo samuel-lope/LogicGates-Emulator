@@ -34,6 +34,7 @@ export interface CircuitNode {
 }
 
 export type WireCurveType = 'curved' | 'straight' | 'remote';
+export type WireStyle = 'solid' | 'dots';
 
 export interface Wire {
   id: string;
@@ -43,6 +44,7 @@ export interface Wire {
   targetPinIndex: number;
   state: boolean;
   curveType?: WireCurveType;
+  wireStyle?: WireStyle;
   color?: string;
   waypoints?: Position[]; // For straight wires
 }
