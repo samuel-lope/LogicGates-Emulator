@@ -29,6 +29,7 @@ const App: React.FC = () => {
   const [selectedWireIds, setSelectedWireIds] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string; wireId?: string } | null>(null);
   const [isMatrixExpanded, setIsMatrixExpanded] = useState(false);
+  const [truthTableNodeId, setTruthTableNodeId] = useState<string | null>(null);
 
   // Interaction State
   const [interaction, setInteraction] = useState<InteractionState>({
@@ -869,8 +870,8 @@ const App: React.FC = () => {
   };
 
   const renderTruthTable = () => {
-    if (selectedNodeIds.length !== 1) return null;
-    const selectedNode = nodes.find(n => n.id === selectedNodeIds[0]);
+    if (!truthTableNodeId) return null;
+    const selectedNode = nodes.find(n => n.id === truthTableNodeId);
     
     // Check if it's a valid logical gate
     if (!selectedNode || selectedNode.inputs.length === 0 || 
@@ -882,7 +883,11 @@ const App: React.FC = () => {
     // Limit to 6 inputs to avoid browser crash
     if (inputCount > 6) {
       return (
-        <div className="absolute top-4 left-4 bg-[#1e1e1e]/90 border border-zinc-800 rounded p-2 text-red-500 text-xs font-mono shadow-lg backdrop-blur-sm z-10 max-w-[200px]">
+        <div className="absolute top-16 right-4 bg-[#1e1e1e]/90 border border-zinc-800 rounded p-2 text-red-500 text-xs font-mono shadow-lg backdrop-blur-sm z-10 max-w-[200px]">
+          <div className="flex items-center justify-between gap-4 mb-2 border-b border-zinc-800 pb-1">
+            <span className="font-bold text-zinc-300">Erro Tabela Verdade</span>
+            <button onClick={() => setTruthTableNodeId(null)} className="text-zinc-500 hover:text-white cursor-pointer px-1">✕</button>
+          </div>
           Tabela Verdade muito grande para exibir ({inputCount} inputs gerariam {Math.pow(2, inputCount)} linhas).
         </div>
       );
@@ -903,9 +908,10 @@ const App: React.FC = () => {
     }
   
     return (
-      <div className="absolute top-4 left-4 bg-[#1e1e1e]/90 border border-zinc-800 rounded p-2 text-zinc-500 text-xs font-mono pointer-events-auto shadow-lg max-w-md backdrop-blur-sm z-10 transition-opacity">
+      <div className="absolute top-16 right-4 bg-[#1e1e1e]/90 border border-zinc-800 rounded p-2 text-zinc-500 text-xs font-mono pointer-events-auto shadow-lg max-w-md backdrop-blur-sm z-10 transition-opacity">
         <div className="flex items-center justify-between gap-4 mb-2 border-b border-zinc-800 pb-1">
           <span className="font-bold text-zinc-300">Tabela Verdade: {selectedNode.type}</span>
+          <button onClick={() => setTruthTableNodeId(null)} className="text-zinc-500 hover:text-white cursor-pointer px-1">✕</button>
         </div>
         
         <div className="max-h-64 overflow-y-auto pr-2 custom-scrollbar">
@@ -1004,6 +1010,7 @@ const App: React.FC = () => {
           onDelete={deleteSelected}
           onDuplicate={duplicateSelected}
           onClose={() => setContextMenu(null)}
+          onShowTruthTable={() => setTruthTableNodeId(contextMenu.nodeId || null)}
         />
       )}
 

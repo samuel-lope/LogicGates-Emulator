@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Copy, Trash2, Minus, Plus, Activity, MoveRight, Wifi, MoreHorizontal } from 'lucide-react';
+import { Copy, Trash2, Minus, Plus, Activity, MoveRight, Wifi, MoreHorizontal, Table } from 'lucide-react';
 import { GateType, WireCurveType, WireStyle } from '../types';
 import { LED_COLORS, GATE_COLORS } from '../constants';
 
@@ -23,6 +23,7 @@ interface ContextMenuProps {
   onDuplicate: () => void;
   onDelete: () => void;
   onClose: () => void;
+  onShowTruthTable?: () => void;
 }
 
 export const ContextMenu: React.FC<ContextMenuProps> = ({
@@ -44,7 +45,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   onChangeShape,
   onDuplicate,
   onDelete,
-  onClose
+  onClose,
+  onShowTruthTable
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -233,6 +235,16 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             </button>
           </div>
         </div>
+      )}
+
+      {nodeType && supportsVariableInputs && onShowTruthTable && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onShowTruthTable(); onClose(); }}
+          className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white flex items-center gap-2 transition-colors cursor-pointer border-b border-zinc-700"
+        >
+          <Table size={14} />
+          Tabela Verdade
+        </button>
       )}
 
       {nodeType && (
