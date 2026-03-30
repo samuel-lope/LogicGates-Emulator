@@ -27,10 +27,10 @@ const distToSegment = (px: number, py: number, x1: number, y1: number, x2: numbe
 
 // Samples a bezier curve to find approximate distance
 const distToBezier = (
-  px: number, py: number, 
-  x0: number, y0: number, 
-  cp1x: number, cp1y: number, 
-  cp2x: number, cp2y: number, 
+  px: number, py: number,
+  x0: number, y0: number,
+  cp1x: number, cp1y: number,
+  cp2x: number, cp2y: number,
   x1: number, y1: number
 ) => {
   const SAMPLES = 10;
@@ -41,20 +41,20 @@ const distToBezier = (
   for (let i = 1; i <= SAMPLES; i++) {
     const t = i / SAMPLES;
     const invT = 1 - t;
-    
+
     // Cubic Bezier Formula
-    const currX = (invT ** 3) * x0 + 
-                  3 * (invT ** 2) * t * cp1x + 
-                  3 * invT * (t ** 2) * cp2x + 
-                  (t ** 3) * x1;
-    const currY = (invT ** 3) * y0 + 
-                  3 * (invT ** 2) * t * cp1y + 
-                  3 * invT * (t ** 2) * cp2y + 
-                  (t ** 3) * y1;
+    const currX = (invT ** 3) * x0 +
+      3 * (invT ** 2) * t * cp1x +
+      3 * invT * (t ** 2) * cp2x +
+      (t ** 3) * x1;
+    const currY = (invT ** 3) * y0 +
+      3 * (invT ** 2) * t * cp1y +
+      3 * invT * (t ** 2) * cp2y +
+      (t ** 3) * y1;
 
     const d = distToSegment(px, py, prevX, prevY, currX, currY);
     if (d < minD) minD = d;
-    
+
     prevX = currX;
     prevY = currY;
   }
@@ -62,9 +62,9 @@ const distToBezier = (
 };
 
 export const checkWireHit = (
-  worldX: number, 
-  worldY: number, 
-  wires: Wire[], 
+  worldX: number,
+  worldY: number,
+  wires: Wire[],
   nodes: CircuitNode[]
 ): string | null => {
   const HIT_THRESHOLD = 8; // World units
@@ -92,24 +92,30 @@ export const checkWireHit = (
     const wire = groupWires[0];
     const sourceNode = nodes.find(n => n.id === wire.sourceNodeId);
     if (!sourceNode) continue;
-    
-    const startX = sourceNode.position.x + sourceNode.width;
-    const startY = sourceNode.position.y + (sourceNode.height / 2);
+
+    let startX = sourceNode.position.x + sourceNode.width;
+    let startY = sourceNode.position.y + (sourceNode.height / 2);
+
+    if (sourceNode.type === GateType.DERIVATION) {
+      const outputCount = sourceNode.outputCount ?? COMPONENT_CONFIGS[sourceNode.type].outputCount;
+      const pinSpacingOut = sourceNode.height / (outputCount + 1);
+      startY = sourceNode.position.y + (pinSpacingOut * (wire.sourcePinIndex + 1));
+    }
 
     let currentX = startX + 20;
     currentX += charWidth; // '['
-    
+
     for (let i = 0; i < groupWires.length; i++) {
       const w = groupWires[i];
       const idWidth = 4 * charWidth;
-      
+
       if (
         worldX >= currentX - 2 && worldX <= currentX + idWidth + 2 &&
         worldY >= startY - charHeight && worldY <= startY + charHeight
       ) {
         return w.id;
       }
-      
+
       currentX += idWidth;
       if (i < groupWires.length - 1) {
         currentX += 3 * charWidth; // ' - '
@@ -129,21 +135,21 @@ export const checkWireHit = (
 
     const totalChars = 1 + groupWires.length * 4 + (groupWires.length - 1) * 3 + 1;
     const totalWidth = totalChars * charWidth;
-    
+
     let currentX = endX - 20 - totalWidth;
     currentX += charWidth; // '['
 
     for (let i = 0; i < groupWires.length; i++) {
       const w = groupWires[i];
       const idWidth = 4 * charWidth;
-      
+
       if (
         worldX >= currentX - 2 && worldX <= currentX + idWidth + 2 &&
         worldY >= endY - charHeight && worldY <= endY + charHeight
       ) {
         return w.id;
       }
-      
+
       currentX += idWidth;
       if (i < groupWires.length - 1) {
         currentX += 3 * charWidth; // ' - '
@@ -159,9 +165,15 @@ export const checkWireHit = (
     if (wire.curveType === 'remote') continue;
 
     // Calculate start/end points exactly as they are drawn
-    const startX = sourceNode.position.x + sourceNode.width;
-    const startY = sourceNode.position.y + (sourceNode.height / 2);
-    
+    let startX = sourceNode.position.x + sourceNode.width;
+    let startY = sourceNode.position.y + (sourceNode.height / 2);
+
+    if (sourceNode.type === GateType.DERIVATION) {
+      const outputCount = sourceNode.outputCount ?? COMPONENT_CONFIGS[sourceNode.type].outputCount;
+      const pinSpacingOut = sourceNode.height / (outputCount + 1);
+      startY = sourceNode.position.y + (pinSpacingOut * (wire.sourcePinIndex + 1));
+    }
+
     // Use dynamic input count from the node instance
     const inputCount = targetNode.inputs.length;
     const pinSpacing = targetNode.height / (inputCount + 1);
@@ -170,10 +182,6 @@ export const checkWireHit = (
 
     const curveType = wire.curveType || 'curved';
     let dist = Infinity;
-
-    if (curveType === 'remote') {
-      continue; // Remote wires are not clickable/hittable
-    }
 
     if (curveType === 'straight') {
       if (wire.waypoints && wire.waypoints.length > 0) {
@@ -192,10 +200,10 @@ export const checkWireHit = (
       // Curved (bezier)
       const cpDist = Math.abs(endX - startX) * 0.5;
       dist = distToBezier(
-        worldX, worldY, 
-        startX, startY, 
-        startX + cpDist, startY, 
-        endX - cpDist, endY, 
+        worldX, worldY,
+        startX, startY,
+        startX + cpDist, startY,
+        endX - cpDist, endY,
         endX, endY
       );
     }
@@ -209,9 +217,9 @@ export const checkWireHit = (
 };
 
 export const checkWaypointHit = (
-  worldX: number, 
-  worldY: number, 
-  wires: Wire[], 
+  worldX: number,
+  worldY: number,
+  wires: Wire[],
   selectedWireIds: string[]
 ): { wireId: string, index: number } | null => {
   const HIT_THRESHOLD = 10;
@@ -229,18 +237,24 @@ export const checkWaypointHit = (
 };
 
 export const getClosestSegmentIndex = (
-  worldX: number, 
-  worldY: number, 
-  wire: Wire, 
+  worldX: number,
+  worldY: number,
+  wire: Wire,
   nodes: CircuitNode[]
 ): number => {
   const sourceNode = nodes.find(n => n.id === wire.sourceNodeId);
   const targetNode = nodes.find(n => n.id === wire.targetNodeId);
   if (!sourceNode || !targetNode) return -1;
 
-  const startX = sourceNode.position.x + sourceNode.width;
-  const startY = sourceNode.position.y + (sourceNode.height / 2);
-  
+  let startX = sourceNode.position.x + sourceNode.width;
+  let startY = sourceNode.position.y + (sourceNode.height / 2);
+
+  if (sourceNode.type === GateType.DERIVATION) {
+    const outputCount = sourceNode.outputCount ?? COMPONENT_CONFIGS[sourceNode.type].outputCount;
+    const pinSpacingOut = sourceNode.height / (outputCount + 1);
+    startY = sourceNode.position.y + (pinSpacingOut * (wire.sourcePinIndex + 1));
+  }
+
   const inputCount = targetNode.inputs.length;
   const pinSpacing = targetNode.height / (inputCount + 1);
   const endX = targetNode.position.x;
@@ -252,7 +266,7 @@ export const getClosestSegmentIndex = (
   let prevX = startX;
   let prevY = startY;
   const waypoints = wire.waypoints || [];
-  
+
   for (let i = 0; i < waypoints.length; i++) {
     const wp = waypoints[i];
     const d = distToSegment(worldX, worldY, prevX, prevY, wp.x, wp.y);
@@ -274,18 +288,18 @@ export const getClosestSegmentIndex = (
 // --- Drawing Functions ---
 
 const drawPin = (
-  ctx: CanvasRenderingContext2D, 
-  x: number, 
-  y: number, 
-  isInput: boolean, 
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  isInput: boolean,
   active: boolean,
   isHovered: boolean
 ) => {
   const r = 5;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = active 
-    ? (isInput ? COLORS.pinInput : COLORS.pinOutput) 
+  ctx.fillStyle = active
+    ? (isInput ? COLORS.pinInput : COLORS.pinOutput)
     : COLORS.componentBody;
   ctx.fill();
   ctx.lineWidth = 2;
@@ -309,30 +323,39 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
     ctx.beginPath();
     ctx.strokeStyle = COLORS.componentBorder;
     ctx.lineWidth = 2;
-    
+
     // Input leads - USE DYNAMIC INPUT COUNT
     const inputCount = node.inputs.length;
     const pinSpacingIn = h / (inputCount + 1);
-    
+
     let cx = 0;
     if (node.type === GateType.OR || node.type === GateType.NOR) {
-      cx = symbolW * (5/16);
+      cx = symbolW * (5 / 16);
     } else if (node.type === GateType.XOR) {
-      cx = symbolW * (5/18);
+      cx = symbolW * (5 / 18);
     }
-    
+
     for (let i = 0; i < inputCount; i++) {
-        const py = pinSpacingIn * (i + 1);
-        const t = py / h;
-        const curveX = 2 * (1 - t) * t * cx;
-        ctx.moveTo(0, py);
-        ctx.lineTo(xOffset + curveX, py);
+      const py = pinSpacingIn * (i + 1);
+      const t = py / h;
+      const curveX = 2 * (1 - t) * t * cx;
+      ctx.moveTo(0, py);
+      ctx.lineTo(xOffset + curveX, py);
     }
     // Output lead
-    if (config.outputCount > 0) {
-        const py = h / 2;
+    if (config.outputCount > 0 && node.type !== GateType.DERIVATION) {
+      const py = h / 2;
+      ctx.moveTo(xOffset + symbolW, py);
+      ctx.lineTo(w, py);
+    } else if (node.type === GateType.DERIVATION && config.outputCount > 0) {
+      // Derivation node output leads
+      const outputCount = node.outputCount ?? config.outputCount;
+      const pinSpacingOut = h / (outputCount + 1);
+      for (let i = 0; i < outputCount; i++) {
+        const py = pinSpacingOut * (i + 1);
         ctx.moveTo(xOffset + symbolW, py);
         ctx.lineTo(w, py);
+      }
     }
     ctx.stroke();
   }
@@ -348,7 +371,7 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
 
   ctx.lineWidth = selected ? 3 : 2;
   ctx.strokeStyle = selected ? COLORS.componentBorderSelected : COLORS.componentBorder;
-  
+
   const fillColor = node.color || COLORS.componentBody;
   ctx.fillStyle = fillColor;
 
@@ -368,27 +391,27 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
       case GateType.OR:
       case GateType.NOR:
         ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(symbolW * (5/16), h / 2, 0, h);
-        ctx.lineTo(symbolW * (3/16), h);
-        ctx.quadraticCurveTo(symbolW * (11/16), h, symbolW, h / 2);
-        ctx.quadraticCurveTo(symbolW * (11/16), 0, symbolW * (3/16), 0);
+        ctx.quadraticCurveTo(symbolW * (5 / 16), h / 2, 0, h);
+        ctx.lineTo(symbolW * (3 / 16), h);
+        ctx.quadraticCurveTo(symbolW * (11 / 16), h, symbolW, h / 2);
+        ctx.quadraticCurveTo(symbolW * (11 / 16), 0, symbolW * (3 / 16), 0);
         ctx.lineTo(0, 0);
         ctx.fill();
         ctx.stroke();
         break;
       case GateType.XOR:
-        ctx.moveTo(symbolW * (1/9), 0);
-        ctx.quadraticCurveTo(symbolW * (7/18), h / 2, symbolW * (1/9), h);
-        ctx.lineTo(symbolW * (5/18), h);
-        ctx.quadraticCurveTo(symbolW * (13/18), h, symbolW, h / 2);
-        ctx.quadraticCurveTo(symbolW * (13/18), 0, symbolW * (5/18), 0);
-        ctx.lineTo(symbolW * (1/9), 0);
+        ctx.moveTo(symbolW * (1 / 9), 0);
+        ctx.quadraticCurveTo(symbolW * (7 / 18), h / 2, symbolW * (1 / 9), h);
+        ctx.lineTo(symbolW * (5 / 18), h);
+        ctx.quadraticCurveTo(symbolW * (13 / 18), h, symbolW, h / 2);
+        ctx.quadraticCurveTo(symbolW * (13 / 18), 0, symbolW * (5 / 18), 0);
+        ctx.lineTo(symbolW * (1 / 9), 0);
         ctx.fill();
-        ctx.stroke(); 
-        
+        ctx.stroke();
+
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(symbolW * (5/18), h / 2, 0, h);
+        ctx.quadraticCurveTo(symbolW * (5 / 18), h / 2, 0, h);
         ctx.stroke();
         break;
       case GateType.NOT:
@@ -400,7 +423,7 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
         ctx.stroke();
         break;
     }
-    
+
     // Negation Circles
     if ([GateType.NAND, GateType.NOR, GateType.NOT].includes(node.type)) {
       ctx.beginPath();
@@ -414,7 +437,7 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
     ctx.roundRect(5, 10, 40, 30, 4);
     ctx.fill();
     ctx.stroke();
-    
+
     ctx.beginPath();
     ctx.roundRect(12, 15, 26, 20, 2);
     ctx.fillStyle = node.state ? COLORS.lampOn : '#111';
@@ -425,17 +448,17 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
     ctx.arc(25, 25, 18, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
-    
+
     const onColor = node.color || COLORS.lampOn;
     ctx.fillStyle = node.state ? onColor : COLORS.lampOff;
     ctx.beginPath();
     ctx.arc(25, 25, 10, 0, Math.PI * 2);
     ctx.fill();
-    
+
     if (node.state) {
-        ctx.shadowColor = onColor;
-        ctx.shadowBlur = 20;
-        ctx.stroke();
+      ctx.shadowColor = onColor;
+      ctx.shadowBlur = 20;
+      ctx.stroke();
     }
   } else if (node.type === GateType.CLOCK) {
     ctx.fillStyle = COLORS.componentBody;
@@ -443,7 +466,7 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
     ctx.roundRect(5, 10, 40, 30, 4);
     ctx.fill();
     ctx.stroke();
-    
+
     ctx.beginPath();
     ctx.moveTo(12, 25);
     ctx.lineTo(18, 25);
@@ -454,7 +477,8 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
     ctx.lineTo(38, 25);
     ctx.stroke();
   } else if (node.type === GateType.DERIVATION) {
-    ctx.fillStyle = node.color || COLORS.componentBody;
+    const onColor = node.color || COLORS.wireActive;
+    ctx.fillStyle = node.state ? onColor : (node.color || COLORS.componentBody);
     ctx.beginPath();
     if (node.shape === 'square') {
       ctx.rect(0, 0, w, h);
@@ -462,6 +486,12 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
       ctx.arc(w / 2, h / 2, w / 2, 0, Math.PI * 2);
     }
     ctx.fill();
+
+    if (node.state) {
+      ctx.shadowColor = onColor;
+      ctx.shadowBlur = 15;
+    }
+
     ctx.stroke();
   }
 
@@ -483,7 +513,7 @@ export const renderCircuit = (
   time: number = 0
 ) => {
   const { width, height } = canvas;
-  
+
   // Clear
   ctx.fillStyle = COLORS.background;
   ctx.fillRect(0, 0, width, height);
@@ -494,10 +524,10 @@ export const renderCircuit = (
   if (scaledGridSize > 5) {
     const offsetX = camera.x % scaledGridSize;
     const offsetY = camera.y % scaledGridSize;
-    
+
     ctx.fillStyle = COLORS.gridLines;
     const dotRadius = Math.max(1, 1.5 * camera.zoom);
-    
+
     ctx.beginPath();
     for (let x = offsetX - scaledGridSize; x < width + scaledGridSize; x += scaledGridSize) {
       for (let y = offsetY - scaledGridSize; y < height + scaledGridSize; y += scaledGridSize) {
@@ -517,9 +547,15 @@ export const renderCircuit = (
     const targetNode = nodes.find(n => n.id === wire.targetNodeId);
     if (!sourceNode || !targetNode) return;
 
-    const startX = sourceNode.position.x + sourceNode.width;
-    const startY = sourceNode.position.y + (sourceNode.height / 2); 
-    
+    let startX = sourceNode.position.x + sourceNode.width;
+    let startY = sourceNode.position.y + (sourceNode.height / 2);
+
+    if (sourceNode.type === GateType.DERIVATION) {
+      const outputCount = sourceNode.outputCount ?? COMPONENT_CONFIGS[sourceNode.type].outputCount;
+      const pinSpacingOut = sourceNode.height / (outputCount + 1);
+      startY = sourceNode.position.y + (pinSpacingOut * (wire.sourcePinIndex + 1));
+    }
+
     // Dynamic input count
     const inputCount = targetNode.inputs.length;
     const pinSpacing = targetNode.height / (inputCount + 1);
@@ -531,7 +567,7 @@ export const renderCircuit = (
 
     ctx.beginPath();
     ctx.moveTo(s.x, s.y);
-    
+
     const curveType = wire.curveType || 'curved';
 
     if (curveType === 'remote') {
@@ -542,10 +578,10 @@ export const renderCircuit = (
       ctx.beginPath();
       ctx.moveTo(s.x, s.y);
       ctx.lineTo(s.x + 15 * camera.zoom, s.y);
-      
+
       ctx.moveTo(e.x, e.y);
       ctx.lineTo(e.x - 15 * camera.zoom, e.y);
-      
+
       ctx.lineWidth = 3 * camera.zoom;
       ctx.strokeStyle = wire.state ? (wire.color || COLORS.wireActive) : COLORS.wireInactive;
       ctx.stroke();
@@ -553,14 +589,14 @@ export const renderCircuit = (
       // Draw remote ID label
       ctx.font = `${10 * camera.zoom}px monospace`;
       ctx.textBaseline = 'middle';
-      
+
       if (!drawnRemoteSources.has(sourceKey)) {
         drawnRemoteSources.add(sourceKey);
         const sourceWires = wires.filter(w => w.curveType === 'remote' && w.sourceNodeId === wire.sourceNodeId && w.sourcePinIndex === wire.sourcePinIndex);
-        
+
         ctx.textAlign = 'left';
         let currentX = s.x + 20 * camera.zoom;
-        
+
         ctx.fillStyle = COLORS.wireInactive;
         ctx.fillText('[', currentX, s.y);
         currentX += ctx.measureText('[').width;
@@ -570,7 +606,7 @@ export const renderCircuit = (
           const idText = w.id.substring(0, 4);
           const isSelected = selectedWireIds.includes(w.id);
           const isHovered = interactionState.hoveredWireId === w.id;
-          
+
           const textWidth = ctx.measureText(idText).width;
 
           if (isSelected || isHovered) {
@@ -593,13 +629,13 @@ export const renderCircuit = (
         ctx.fillStyle = COLORS.wireInactive;
         ctx.fillText(']', currentX, s.y);
       }
-      
+
       if (!drawnRemoteTargets.has(targetKey)) {
         drawnRemoteTargets.add(targetKey);
         const targetWires = wires.filter(w => w.curveType === 'remote' && w.targetNodeId === wire.targetNodeId && w.targetPinIndex === wire.targetPinIndex);
-        
+
         ctx.textAlign = 'left';
-        
+
         // Calculate total width
         let totalWidth = ctx.measureText('[').width + ctx.measureText(']').width;
         for (let i = 0; i < targetWires.length; i++) {
@@ -610,7 +646,7 @@ export const renderCircuit = (
         }
 
         let currentX = e.x - 20 * camera.zoom - totalWidth;
-        
+
         ctx.fillStyle = COLORS.wireInactive;
         ctx.fillText('[', currentX, e.y);
         currentX += ctx.measureText('[').width;
@@ -620,7 +656,7 @@ export const renderCircuit = (
           const idText = w.id.substring(0, 4);
           const isSelected = selectedWireIds.includes(w.id);
           const isHovered = interactionState.hoveredWireId === w.id;
-          
+
           const textWidth = ctx.measureText(idText).width;
 
           if (isSelected || isHovered) {
@@ -643,7 +679,7 @@ export const renderCircuit = (
         ctx.fillStyle = COLORS.wireInactive;
         ctx.fillText(']', currentX, e.y);
       }
-      
+
       return; // Skip the rest of the wire drawing
     }
 
@@ -663,7 +699,7 @@ export const renderCircuit = (
       const cpDist = Math.abs(e.x - s.x) * 0.5;
       ctx.bezierCurveTo(s.x + cpDist, s.y, e.x - cpDist, e.y, e.x, e.y);
     }
-    
+
     const isSelected = selectedWireIds.includes(wire.id);
     const isHovered = interactionState.hoveredWireId === wire.id;
     const wireStyle = wire.wireStyle || 'solid';
@@ -685,10 +721,10 @@ export const renderCircuit = (
       // Dots Style
       ctx.save();
       ctx.lineWidth = 3 * camera.zoom;
-      
+
       const dotColor = wire.state ? (wire.color || COLORS.wireActive) : COLORS.wireInactive;
       ctx.strokeStyle = dotColor;
-      
+
       if (wire.state) {
         ctx.shadowColor = dotColor;
         ctx.shadowBlur = 10;
@@ -699,12 +735,12 @@ export const renderCircuit = (
       const dotSpacing = 15 * camera.zoom;
       ctx.setLineDash([0, dotSpacing]);
       ctx.lineCap = 'round'; // This makes the 0-length dashes round (dots)
-      
+
       // Animate the dots if active
       if (wire.state) {
         ctx.lineDashOffset = -(time / 20) % dotSpacing;
       }
-      
+
       ctx.stroke();
       ctx.restore();
     } else {
@@ -755,31 +791,41 @@ export const renderCircuit = (
   nodes.forEach(node => {
     ctx.save();
     ctx.setTransform(camera.zoom, 0, 0, camera.zoom, camera.x, camera.y);
-    
+
     const isSelected = selectedNodeIds.includes(node.id);
     drawIEEEGate(ctx, node, isSelected);
 
     // Draw Pins
     const config = COMPONENT_CONFIGS[node.type];
-    
+
     // Inputs - DYNAMIC
     const inputCount = node.inputs.length;
     const pinSpacingIn = node.height / (inputCount + 1);
     for (let i = 0; i < inputCount; i++) {
-        const pinY = node.position.y + (pinSpacingIn * (i + 1));
-        const isHovered = interactionState.hoveredPin?.nodeId === node.id 
-            && interactionState.hoveredPin?.type === 'input' 
-            && interactionState.hoveredPin?.index === i;
-            
-        drawPin(ctx, node.position.x, pinY, true, node.inputs[i], isHovered);
+      const pinY = node.position.y + (pinSpacingIn * (i + 1));
+      const isHovered = interactionState.hoveredPin?.nodeId === node.id
+        && interactionState.hoveredPin?.type === 'input'
+        && interactionState.hoveredPin?.index === i;
+
+      drawPin(ctx, node.position.x, pinY, true, node.inputs[i], isHovered);
     }
 
     // Outputs
-    if (config.outputCount > 0) {
-        const pinY = node.position.y + (node.height / 2);
-        const isHovered = interactionState.hoveredPin?.nodeId === node.id 
-            && interactionState.hoveredPin?.type === 'output';
+    if (config.outputCount > 0 && node.type !== GateType.DERIVATION) {
+      const pinY = node.position.y + (node.height / 2);
+      const isHovered = interactionState.hoveredPin?.nodeId === node.id
+        && interactionState.hoveredPin?.type === 'output';
+      drawPin(ctx, node.position.x + node.width, pinY, false, node.state, isHovered);
+    } else if (node.type === GateType.DERIVATION && config.outputCount > 0) {
+      const outputCount = node.outputCount ?? config.outputCount;
+      const pinSpacingOut = node.height / (outputCount + 1);
+      for (let i = 0; i < outputCount; i++) {
+        const pinY = node.position.y + (pinSpacingOut * (i + 1));
+        const isHovered = interactionState.hoveredPin?.nodeId === node.id
+          && interactionState.hoveredPin?.type === 'output'
+          && interactionState.hoveredPin?.index === i;
         drawPin(ctx, node.position.x + node.width, pinY, false, node.state, isHovered);
+      }
     }
 
     ctx.restore();
@@ -789,9 +835,15 @@ export const renderCircuit = (
   if (interactionState.mode === InteractionMode.WIRING && interactionState.activeWireStart) {
     const sourceNode = nodes.find(n => n.id === interactionState.activeWireStart!.nodeId);
     if (sourceNode) {
-      const startX = sourceNode.position.x + sourceNode.width;
-      const startY = sourceNode.position.y + (sourceNode.height / 2);
-      
+      let startX = sourceNode.position.x + sourceNode.width;
+      let startY = sourceNode.position.y + (sourceNode.height / 2);
+
+      if (sourceNode.type === GateType.DERIVATION) {
+        const outputCount = sourceNode.outputCount ?? COMPONENT_CONFIGS[sourceNode.type].outputCount;
+        const pinSpacingOut = sourceNode.height / (outputCount + 1);
+        startY = sourceNode.position.y + (pinSpacingOut * (interactionState.activeWireStart!.pinIndex + 1));
+      }
+
       const s = worldToScreen(startX, startY, camera);
       const e = currentMousePos;
 
@@ -803,10 +855,10 @@ export const renderCircuit = (
 
       if (curveType === 'remote') {
         ctx.lineTo(s.x + 15 * camera.zoom, s.y);
-        
+
         ctx.moveTo(e.x, e.y);
         ctx.lineTo(e.x - 15 * camera.zoom, e.y);
-        
+
         ctx.lineWidth = 3 * camera.zoom;
         ctx.strokeStyle = COLORS.wireInactive;
         ctx.stroke();
@@ -816,7 +868,7 @@ export const renderCircuit = (
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.fillText(`[NEW]`, s.x + 20 * camera.zoom, s.y);
-        
+
         ctx.textAlign = 'right';
         ctx.fillText(`[NEW]`, e.x - 20 * camera.zoom, e.y);
       } else if (curveType === 'straight') {

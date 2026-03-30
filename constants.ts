@@ -51,94 +51,95 @@ export interface ComponentConfig {
   inputCount: number;
   outputCount: number;
   description: string;
+  imageSrc?: string;
 }
 
 export const COMPONENT_CONFIGS: Record<GateType, ComponentConfig> = {
-  [GateType.AND]: { 
-    type: GateType.AND, 
-    label: 'AND', 
+  [GateType.AND]: {
+    type: GateType.AND,
+    label: 'AND',
     width: 120, // Increased for leads
     symbolWidth: 80,
-    height: 60, 
-    inputCount: 2, 
-    outputCount: 1, 
+    height: 60,
+    inputCount: 2,
+    outputCount: 1,
     description: 'Output High only if all inputs are High.'
   },
-  [GateType.OR]: { 
-    type: GateType.OR, 
-    label: 'OR', 
-    width: 120, 
+  [GateType.OR]: {
+    type: GateType.OR,
+    label: 'OR',
+    width: 120,
     symbolWidth: 80,
-    height: 60, 
-    inputCount: 2, 
-    outputCount: 1, 
+    height: 60,
+    inputCount: 2,
+    outputCount: 1,
     description: 'Output High if any input is High.'
   },
-  [GateType.NOT]: { 
-    type: GateType.NOT, 
-    label: 'NOT', 
-    width: 100, 
+  [GateType.NOT]: {
+    type: GateType.NOT,
+    label: 'NOT',
+    width: 100,
     symbolWidth: 60,
-    height: 40, 
-    inputCount: 1, 
-    outputCount: 1, 
+    height: 40,
+    inputCount: 1,
+    outputCount: 1,
     description: 'Inverts the input signal.'
   },
-  [GateType.NAND]: { 
-    type: GateType.NAND, 
-    label: 'NAND', 
-    width: 120, 
+  [GateType.NAND]: {
+    type: GateType.NAND,
+    label: 'NAND',
+    width: 120,
     symbolWidth: 80,
-    height: 60, 
-    inputCount: 2, 
-    outputCount: 1, 
+    height: 60,
+    inputCount: 2,
+    outputCount: 1,
     description: 'AND followed by NOT.'
   },
-  [GateType.NOR]: { 
-    type: GateType.NOR, 
-    label: 'NOR', 
-    width: 120, 
+  [GateType.NOR]: {
+    type: GateType.NOR,
+    label: 'NOR',
+    width: 120,
     symbolWidth: 80,
-    height: 60, 
-    inputCount: 2, 
-    outputCount: 1, 
+    height: 60,
+    inputCount: 2,
+    outputCount: 1,
     description: 'OR followed by NOT.'
   },
-  [GateType.XOR]: { 
-    type: GateType.XOR, 
-    label: 'XOR', 
-    width: 130, 
+  [GateType.XOR]: {
+    type: GateType.XOR,
+    label: 'XOR',
+    width: 130,
     symbolWidth: 90,
-    height: 60, 
-    inputCount: 2, 
-    outputCount: 1, 
+    height: 60,
+    inputCount: 2,
+    outputCount: 1,
     description: 'Exclusive OR.'
   },
-  [GateType.INPUT_SWITCH]: { 
-    type: GateType.INPUT_SWITCH, 
-    label: 'SW', 
-    width: 50, 
-    height: 50, 
-    inputCount: 0, 
-    outputCount: 1, 
+  [GateType.INPUT_SWITCH]: {
+    type: GateType.INPUT_SWITCH,
+    label: 'SW',
+    width: 50,
+    height: 50,
+    inputCount: 0,
+    outputCount: 1,
     description: 'Toggle switch for logic High/Low.'
   },
-  [GateType.OUTPUT_LAMP]: { 
-    type: GateType.OUTPUT_LAMP, 
-    label: 'LED', 
-    width: 50, 
-    height: 50, 
-    inputCount: 1, 
-    outputCount: 0, 
+  [GateType.OUTPUT_LAMP]: {
+    type: GateType.OUTPUT_LAMP,
+    label: 'LED',
+    width: 50,
+    height: 50,
+    inputCount: 1,
+    outputCount: 0,
     description: 'Visual indicator of signal state.'
   },
-  [GateType.CLOCK]: { 
-    type: GateType.CLOCK, 
-    label: 'CLK', 
-    width: 50, 
-    height: 50, 
-    inputCount: 0, 
-    outputCount: 1, 
+  [GateType.CLOCK]: {
+    type: GateType.CLOCK,
+    label: 'CLK',
+    width: 50,
+    height: 50,
+    inputCount: 0,
+    outputCount: 1,
     description: 'Toggles signal periodically.'
   },
   [GateType.DERIVATION]: {
@@ -148,7 +149,7 @@ export const COMPONENT_CONFIGS: Record<GateType, ComponentConfig> = {
     symbolWidth: 20,
     height: 20,
     inputCount: 1,
-    outputCount: 1,
+    outputCount: 4,
     description: 'A junction point that passes its input state to its output.'
   }
 };

@@ -1,17 +1,17 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { 
-  CircuitNode, 
-  Wire, 
-  Camera, 
-  InteractionMode, 
-  InteractionState, 
+import {
+  CircuitNode,
+  Wire,
+  Camera,
+  InteractionMode,
+  InteractionState,
   GateType,
   Position,
   ProjectData
 } from './types';
 import { COMPONENT_CONFIGS, COLORS, PIN_SPACING } from './constants';
 import { renderCircuit, screenToWorld, worldToScreen, checkWireHit, checkWaypointHit, getClosestSegmentIndex } from './services/renderer';
-import { propagateCircuit } from './services/circuitEngine';
+import { propagateCircuit, computeNodeLogic } from './services/circuitEngine';
 import Toolbar from './components/Toolbar';
 import { ContextMenu } from './components/ContextMenu';
 
@@ -29,7 +29,7 @@ const App: React.FC = () => {
   const [selectedWireIds, setSelectedWireIds] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string; wireId?: string } | null>(null);
   const [isMatrixExpanded, setIsMatrixExpanded] = useState(false);
-  
+
   // Interaction State
   const [interaction, setInteraction] = useState<InteractionState>({
     mode: InteractionMode.IDLE,
@@ -52,7 +52,7 @@ const App: React.FC = () => {
   const mousePosRef = useRef<Position>({ x: 0, y: 0 });
   const selectedNodeIdsRef = useRef(selectedNodeIds);
   const selectedWireIdsRef = useRef(selectedWireIds);
-  
+
   // Store initial positions of selected nodes when dragging starts
   const initialNodePositionsRef = useRef<Map<string, Position>>(new Map());
 
@@ -69,7 +69,7 @@ const App: React.FC = () => {
     const interval = setInterval(() => {
       let needsUpdate = false;
       const currentNodes = [...nodesRef.current];
-      
+
       // Handle Clock Components
       currentNodes.forEach(node => {
         if (node.type === GateType.CLOCK) {
@@ -105,13 +105,13 @@ const App: React.FC = () => {
       }
 
       const currentInteraction = interactionRef.current;
-      
+
       renderCircuit(
-        canvas, 
-        ctx, 
-        nodesRef.current, 
-        wiresRef.current, 
-        cameraRef.current, 
+        canvas,
+        ctx,
+        nodesRef.current,
+        wiresRef.current,
+        cameraRef.current,
         currentInteraction,
         selectedNodeIdsRef.current,
         selectedWireIdsRef.current,
@@ -127,7 +127,7 @@ const App: React.FC = () => {
           const startX = node.position.x + node.width;
           const startY = node.position.y + node.height / 2;
           const s = worldToScreen(startX, startY, cameraRef.current);
-          
+
           ctx.beginPath();
           ctx.moveTo(s.x, s.y);
           ctx.lineTo(mousePosRef.current.x, mousePosRef.current.y);
@@ -152,21 +152,21 @@ const App: React.FC = () => {
     // Collect ids
     const nodeIdsToDelete = new Set(selectedNodeIdsRef.current);
     const wireIdsToDelete = new Set(selectedWireIdsRef.current);
-    
+
     // Add context menu target if applicable
     if (contextMenu?.nodeId && !nodeIdsToDelete.has(contextMenu.nodeId)) {
-        nodeIdsToDelete.add(contextMenu.nodeId);
+      nodeIdsToDelete.add(contextMenu.nodeId);
     }
-    
+
     if (nodeIdsToDelete.size === 0 && wireIdsToDelete.size === 0) return;
 
     // Filter nodes
     setNodes(prev => prev.filter(n => !nodeIdsToDelete.has(n.id)));
-    
+
     // Filter wires (remove if explicitly selected OR if attached to a deleted node)
-    setWires(prev => prev.filter(w => 
-      !wireIdsToDelete.has(w.id) && 
-      !nodeIdsToDelete.has(w.sourceNodeId) && 
+    setWires(prev => prev.filter(w =>
+      !wireIdsToDelete.has(w.id) &&
+      !nodeIdsToDelete.has(w.sourceNodeId) &&
       !nodeIdsToDelete.has(w.targetNodeId)
     ));
 
@@ -220,7 +220,7 @@ const App: React.FC = () => {
 
     setNodes(prev => [...prev, ...newNodes]);
     setWires(prev => [...prev, ...newWires]);
-    
+
     // Select the new copies
     setSelectedNodeIds(newNodes.map(n => n.id));
     setSelectedWireIds([]); // Do not auto-select duplicated wires for now
@@ -229,31 +229,31 @@ const App: React.FC = () => {
 
   const handleInputCountChange = (delta: number) => {
     if (!contextMenu?.nodeId) return;
-    
+
     const nodeId = contextMenu.nodeId;
-    
+
     setNodes(prevNodes => prevNodes.map(node => {
       if (node.id !== nodeId) return node;
 
       const currentCount = node.inputs.length;
       const newCount = Math.min(32, Math.max(2, currentCount + delta)); // Increased limit to 32
-      
+
       if (newCount === currentCount) return node;
 
       let newInputs = [...node.inputs];
-      
+
       if (newCount > currentCount) {
         // Add inputs (default false)
-        for(let i = 0; i < (newCount - currentCount); i++) {
-            newInputs.push(false);
+        for (let i = 0; i < (newCount - currentCount); i++) {
+          newInputs.push(false);
         }
       } else {
         // Remove inputs from end
         newInputs = newInputs.slice(0, newCount);
-        
+
         // Remove wires connected to deleted pins
-        setWires(prevWires => prevWires.filter(w => 
-           !(w.targetNodeId === nodeId && w.targetPinIndex >= newCount)
+        setWires(prevWires => prevWires.filter(w =>
+          !(w.targetNodeId === nodeId && w.targetPinIndex >= newCount)
         ));
       }
 
@@ -270,12 +270,47 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleOutputCountChange = (delta: number) => {
+    if (!contextMenu?.nodeId) return;
+
+    const nodeId = contextMenu.nodeId;
+
+    setNodes(prevNodes => prevNodes.map(node => {
+      if (node.id !== nodeId) return node;
+
+      const baseOutputs = COMPONENT_CONFIGS[node.type]?.outputCount || 1;
+      const currentCount = node.outputCount ?? baseOutputs;
+      const newCount = Math.min(32, Math.max(1, currentCount + delta));
+
+      if (newCount === currentCount) return node;
+
+      if (newCount < currentCount) {
+        // Remove wires connected to deleted output pins
+        setWires(prevWires => prevWires.filter(w =>
+          !(w.sourceNodeId === nodeId && w.sourcePinIndex >= newCount)
+        ));
+      }
+
+      // Height logic scaling only needed for Derivations
+      let derivedHeight = node.height;
+      if (node.type === GateType.DERIVATION) {
+          derivedHeight = Math.max(20, (newCount + 1) * 10);
+      }
+
+      return {
+        ...node,
+        outputCount: newCount,
+        height: derivedHeight
+      };
+    }));
+  };
+
   const handleChangeNodeType = (newType: GateType) => {
     if (!contextMenu?.nodeId) return;
-    
+
     const nodeId = contextMenu.nodeId;
     const config = COMPONENT_CONFIGS[newType];
-    
+
     setNodes(prevNodes => prevNodes.map(node => {
       if (node.id !== nodeId) return node;
 
@@ -283,10 +318,10 @@ const App: React.FC = () => {
       let newCount = newInputs.length;
 
       const supportsVariableInputs = [
-        GateType.AND, 
-        GateType.OR, 
-        GateType.NAND, 
-        GateType.NOR, 
+        GateType.AND,
+        GateType.OR,
+        GateType.NAND,
+        GateType.NOR,
         GateType.XOR
       ].includes(newType);
 
@@ -297,14 +332,14 @@ const App: React.FC = () => {
       }
 
       if (newCount > newInputs.length) {
-        for(let i = 0; i < (newCount - newInputs.length); i++) {
+        for (let i = 0; i < (newCount - newInputs.length); i++) {
           newInputs.push(false);
         }
       } else if (newCount < newInputs.length) {
         newInputs = newInputs.slice(0, newCount);
-        
-        setWires(prevWires => prevWires.filter(w => 
-           !(w.targetNodeId === nodeId && w.targetPinIndex >= newCount)
+
+        setWires(prevWires => prevWires.filter(w =>
+          !(w.targetNodeId === nodeId && w.targetPinIndex >= newCount)
         ));
       }
 
@@ -333,7 +368,7 @@ const App: React.FC = () => {
 
     const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    
+
     const a = document.createElement('a');
     a.href = url;
     a.download = `circuit-${new Date().toISOString().slice(0, 10)}.json`;
@@ -349,7 +384,7 @@ const App: React.FC = () => {
       try {
         const content = e.target?.result as string;
         const projectData = JSON.parse(content) as ProjectData;
-        
+
         // Basic validation
         if (Array.isArray(projectData.nodes) && Array.isArray(projectData.wires)) {
           setNodes(projectData.nodes);
@@ -375,10 +410,10 @@ const App: React.FC = () => {
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    
+
     let targetNodeId = interaction.hoveredNodeId;
     let targetWireId = interaction.hoveredWireId;
-    
+
     if (targetNodeId) {
       if (!selectedNodeIds.includes(targetNodeId)) {
         setSelectedNodeIds([targetNodeId]);
@@ -432,14 +467,15 @@ const App: React.FC = () => {
       const newNode: CircuitNode = {
         id: generateId(),
         type: interaction.placingType,
-        position: { x: worldPos.x - config.width/2, y: worldPos.y - config.height/2 },
+        position: { x: worldPos.x - config.width / 2, y: worldPos.y - config.height / 2 },
         width: config.width,
         height: config.height,
         inputs: new Array(config.inputCount).fill(false),
         state: false,
-        label: config.label
+        label: config.label,
+        outputCount: config.outputCount
       };
-      
+
       setNodes(prev => [...prev, newNode]);
       setSelectedNodeIds([newNode.id]);
       setSelectedWireIds([]);
@@ -454,7 +490,7 @@ const App: React.FC = () => {
           mode: InteractionMode.WIRING,
           activeWireStart: { nodeId: prev.hoveredPin!.nodeId, pinIndex: prev.hoveredPin!.index }
         }));
-        setSelectedNodeIds([]); 
+        setSelectedNodeIds([]);
         setSelectedWireIds([]);
       }
       return;
@@ -482,7 +518,7 @@ const App: React.FC = () => {
       }
 
       setSelectedNodeIds(newSelection);
-      
+
       // Prepare for Dragging
       const initialPosMap = new Map<string, Position>();
       nodes.forEach(n => {
@@ -499,7 +535,7 @@ const App: React.FC = () => {
       }));
       return;
     }
-    
+
     // Waypoint Interaction (Dragging / Removing)
     const waypointHit = checkWaypointHit(worldPos.x, worldPos.y, wires, selectedWireIds);
     if (waypointHit) {
@@ -522,7 +558,7 @@ const App: React.FC = () => {
       }
       return;
     }
-    
+
     // Wire Selection Check (if no node or pin is hovered)
     // Check if we hit a wire using the logic in renderer
     const hitWireId = checkWireHit(worldPos.x, worldPos.y, wires, nodes);
@@ -553,7 +589,7 @@ const App: React.FC = () => {
 
       const isMultiSelectKey = e.shiftKey || e.ctrlKey || e.metaKey;
       let newWireSelection = [...selectedWireIds];
-      
+
       if (isMultiSelectKey) {
         if (newWireSelection.includes(hitWireId)) {
           newWireSelection = newWireSelection.filter(id => id !== hitWireId);
@@ -564,15 +600,15 @@ const App: React.FC = () => {
         newWireSelection = [hitWireId];
         setSelectedNodeIds([]); // Clear nodes if selecting wire without Shift
       }
-      
+
       setSelectedWireIds(newWireSelection);
       return;
     }
 
     // Empty Space -> Selection Box
     if (!e.shiftKey && !e.ctrlKey) {
-        setSelectedNodeIds([]);
-        setSelectedWireIds([]);
+      setSelectedNodeIds([]);
+      setSelectedWireIds([]);
     }
     setInteraction(prev => ({
       ...prev,
@@ -614,14 +650,14 @@ const App: React.FC = () => {
     if (interaction.mode === InteractionMode.DRAGGING_NODE) {
       const dx = (x - interaction.dragStart.x) / camera.zoom;
       const dy = (y - interaction.dragStart.y) / camera.zoom;
-      
+
       setNodes(prev => prev.map(n => {
         if (initialNodePositionsRef.current.has(n.id)) {
-            const initial = initialNodePositionsRef.current.get(n.id)!;
-            return {
-                ...n,
-                position: { x: initial.x + dx, y: initial.y + dy }
-            };
+          const initial = initialNodePositionsRef.current.get(n.id)!;
+          return {
+            ...n,
+            position: { x: initial.x + dx, y: initial.y + dy }
+          };
         }
         return n;
       }));
@@ -632,19 +668,19 @@ const App: React.FC = () => {
     if (interaction.mode === InteractionMode.SELECTING) {
       const startWorld = screenToWorld(interaction.dragStart.x, interaction.dragStart.y, camera);
       const currentWorld = screenToWorld(x, y, camera);
-      
+
       const minX = Math.min(startWorld.x, currentWorld.x);
       const maxX = Math.max(startWorld.x, currentWorld.x);
       const minY = Math.min(startWorld.y, currentWorld.y);
       const maxY = Math.max(startWorld.y, currentWorld.y);
 
       const enclosedIds = nodes
-        .filter(n => 
+        .filter(n =>
           n.position.x >= minX && (n.position.x + n.width) <= maxX &&
           n.position.y >= minY && (n.position.y + n.height) <= maxY
         )
         .map(n => n.id);
-      
+
       setSelectedNodeIds(enclosedIds);
       // Optional: Select enclosed wires too? For now, stick to nodes.
       return;
@@ -660,7 +696,7 @@ const App: React.FC = () => {
       for (let i = nodes.length - 1; i >= 0; i--) {
         const node = nodes[i];
         const config = COMPONENT_CONFIGS[node.type];
-        
+
         // Pins - Dynamic Check
         const inputCount = node.inputs.length;
         const pinSpacingIn = node.height / (inputCount + 1);
@@ -674,24 +710,35 @@ const App: React.FC = () => {
         }
         if (foundPin) break;
 
-        if (config.outputCount > 0) {
+        if (config.outputCount > 0 && node.type !== GateType.DERIVATION) {
           const px = node.position.x + node.width;
           const py = node.position.y + node.height / 2;
           if (Math.hypot(worldPos.x - px, worldPos.y - py) < 10) {
             foundPin = { nodeId: node.id, type: 'output', index: 0 };
             break;
           }
+        } else if (node.type === GateType.DERIVATION && config.outputCount > 0) {
+          const outputCount = config.outputCount;
+          const pinSpacingOut = node.height / (outputCount + 1);
+          for (let p = 0; p < outputCount; p++) {
+            const px = node.position.x + node.width;
+            const py = node.position.y + (pinSpacingOut * (p + 1));
+            if (Math.hypot(worldPos.x - px, worldPos.y - py) < 10) {
+              foundPin = { nodeId: node.id, type: 'output', index: p };
+              break;
+            }
+          }
         }
         if (foundPin) break;
 
         // Body
         if (worldPos.x >= node.position.x && worldPos.x <= node.position.x + node.width &&
-            worldPos.y >= node.position.y && worldPos.y <= node.position.y + node.height) {
+          worldPos.y >= node.position.y && worldPos.y <= node.position.y + node.height) {
           foundNodeId = node.id;
           break;
         }
       }
-      
+
       // Check Wires (Only if no node/pin hovered to avoid noise)
       let foundWireId: string | null = null;
       if (!foundNodeId && !foundPin) {
@@ -728,7 +775,7 @@ const App: React.FC = () => {
         }));
         return;
       }
-      
+
       setInteraction(prev => ({
         ...prev,
         mode: InteractionMode.IDLE,
@@ -741,7 +788,7 @@ const App: React.FC = () => {
     if (interaction.mode === InteractionMode.WIRING && interaction.activeWireStart) {
       if (interaction.hoveredPin && interaction.hoveredPin.type === 'input') {
         const targetNode = nodes.find(n => n.id === interaction.hoveredPin!.nodeId);
-        
+
         const newWire: Wire = {
           id: generateId(),
           sourceNodeId: interaction.activeWireStart.nodeId,
@@ -752,8 +799,8 @@ const App: React.FC = () => {
           curveType: interaction.activeWireCurveType,
           waypoints: interaction.activeWireCurveType === 'straight' ? [...(interaction.activeWireStart.waypoints || [])] : []
         };
-        
-        const exists = wires.some(w => 
+
+        const exists = wires.some(w =>
           w.targetNodeId === newWire.targetNodeId && w.targetPinIndex === newWire.targetPinIndex
         );
 
@@ -762,9 +809,9 @@ const App: React.FC = () => {
           // Replace existing wire for non-derivation nodes
           newWires = newWires.filter(w => !(w.targetNodeId === newWire.targetNodeId && w.targetPinIndex === newWire.targetPinIndex));
         }
-        
+
         newWires.push(newWire);
-        
+
         const res = propagateCircuit(nodes, newWires);
         setNodes(res.nodes);
         setWires(res.wires);
@@ -774,10 +821,10 @@ const App: React.FC = () => {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         const worldPos = screenToWorld(x, y, camera);
-        
+
         const currentWaypoints = interaction.activeWireStart.waypoints || [];
         const lastWaypoint = currentWaypoints[currentWaypoints.length - 1];
-        
+
         // Prevent adding duplicate waypoints if clicked too close to the last one
         if (!lastWaypoint || Math.hypot(worldPos.x - lastWaypoint.x, worldPos.y - lastWaypoint.y) > 5) {
           setInteraction(prev => ({
@@ -798,12 +845,12 @@ const App: React.FC = () => {
       if (dist < 3 && interaction.hoveredNodeId) {
         const node = nodes.find(n => n.id === interaction.hoveredNodeId);
         if (node && node.type === GateType.INPUT_SWITCH) {
-           const newNodes = nodes.map(n => 
-             n.id === node.id ? { ...n, state: !n.state } : n
-           );
-           const res = propagateCircuit(newNodes, wires);
-           setNodes(res.nodes);
-           setWires(res.wires);
+          const newNodes = nodes.map(n =>
+            n.id === node.id ? { ...n, state: !n.state } : n
+          );
+          const res = propagateCircuit(newNodes, wires);
+          setNodes(res.nodes);
+          setWires(res.wires);
         }
       }
     }
@@ -858,20 +905,92 @@ const App: React.FC = () => {
     }
   };
 
+  const renderTruthTable = () => {
+    if (selectedNodeIds.length !== 1) return null;
+    const selectedNode = nodes.find(n => n.id === selectedNodeIds[0]);
+    
+    // Check if it's a valid logical gate
+    if (!selectedNode || selectedNode.inputs.length === 0 || 
+        [GateType.INPUT_SWITCH, GateType.OUTPUT_LAMP, GateType.CLOCK, GateType.DERIVATION].includes(selectedNode.type)) {
+      return null;
+    }
+  
+    const inputCount = selectedNode.inputs.length;
+    // Limit to 6 inputs to avoid browser crash
+    if (inputCount > 6) {
+      return (
+        <div className="absolute top-4 left-4 bg-[#1e1e1e]/90 border border-zinc-800 rounded p-2 text-red-500 text-xs font-mono shadow-lg backdrop-blur-sm z-10 max-w-[200px]">
+          Tabela Verdade muito grande para exibir ({inputCount} inputs gerariam {Math.pow(2, inputCount)} linhas).
+        </div>
+      );
+    }
+  
+    const rowsCount = Math.pow(2, inputCount);
+    const rows = [];
+    const tempNode = { ...selectedNode };
+    
+    for (let i = 0; i < rowsCount; i++) {
+        const inputs = [];
+        for (let j = 0; j < inputCount; j++) {
+            // MSB to LSB
+            inputs.push( ((i >> (inputCount - 1 - j)) & 1) === 1 );
+        }
+        const output = computeNodeLogic(tempNode, inputs);
+        rows.push({ inputs, output });
+    }
+  
+    return (
+      <div className="absolute top-4 left-4 bg-[#1e1e1e]/90 border border-zinc-800 rounded p-2 text-zinc-500 text-xs font-mono pointer-events-auto shadow-lg max-w-md backdrop-blur-sm z-10 transition-opacity">
+        <div className="flex items-center justify-between gap-4 mb-2 border-b border-zinc-800 pb-1">
+          <span className="font-bold text-zinc-300">Tabela Verdade: {selectedNode.type}</span>
+        </div>
+        
+        <div className="max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+          <table className="w-full text-center border-collapse">
+            <thead>
+              <tr>
+                {Array.from({ length: inputCount }).map((_, idx) => (
+                  <th key={idx} className="px-3 py-1 text-zinc-400 font-semibold border-b border-zinc-700">
+                    {String.fromCharCode(65 + idx)}
+                  </th>
+                ))}
+                <th className="px-3 py-1 font-bold text-zinc-300 border-b border-zinc-700 border-l border-zinc-700">OUT</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, idx) => (
+                <tr key={idx} className="hover:bg-zinc-800/50 transition-colors">
+                  {row.inputs.map((val, jdx) => (
+                    <td key={jdx} className={`px-3 py-1 border-b border-zinc-800/50 ${val ? 'text-green-400/70' : 'text-zinc-600'}`}>
+                      {val ? '1' : '0'}
+                    </td>
+                  ))}
+                  <td className={`px-3 py-1 border-b border-zinc-800/50 border-l border-zinc-800 font-bold ${row.output ? 'text-green-400' : 'text-zinc-500'}`}>
+                    {row.output ? '1' : '0'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="relative w-screen h-screen bg-[#1e1e1e] overflow-hidden">
-      <Toolbar 
-        onSelectTool={selectTool} 
-        currentMode={interaction.mode} 
+      <Toolbar
+        onSelectTool={selectTool}
+        currentMode={interaction.mode}
         selectedGateType={interaction.placingType}
         onSave={handleSaveProject}
         onLoad={handleLoadProject}
         activeWireCurveType={interaction.activeWireCurveType}
         onChangeWireCurveType={(type) => setInteraction(prev => ({ ...prev, activeWireCurveType: type }))}
       />
-      
-      <div 
-        ref={containerRef} 
+
+      <div
+        ref={containerRef}
         className="w-full h-full cursor-crosshair"
       >
         <canvas
@@ -886,9 +1005,9 @@ const App: React.FC = () => {
       </div>
 
       {contextMenu && (
-        <ContextMenu 
-          x={contextMenu.x} 
-          y={contextMenu.y} 
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
           nodeType={nodes.find(n => n.id === contextMenu.nodeId)?.type}
           currentColor={nodes.find(n => n.id === contextMenu.nodeId)?.color || wires.find(w => w.id === contextMenu.wireId)?.color}
           inputCount={nodes.find(n => n.id === contextMenu.nodeId)?.inputs.length}
@@ -896,28 +1015,30 @@ const App: React.FC = () => {
           wireStyle={contextMenu.wireId ? (wires.find(w => w.id === contextMenu.wireId)?.wireStyle || 'solid') : undefined}
           shape={nodes.find(n => n.id === contextMenu.nodeId)?.shape}
           onColorChange={(color) => {
-             if (contextMenu.nodeId) {
-               setNodes(prev => prev.map(n => n.id === contextMenu.nodeId ? { ...n, color } : n));
-             } else if (contextMenu.wireId) {
-               setWires(prev => prev.map(w => w.id === contextMenu.wireId ? { ...w, color } : w));
-             }
+            if (contextMenu.nodeId) {
+              setNodes(prev => prev.map(n => n.id === contextMenu.nodeId ? { ...n, color } : n));
+            } else if (contextMenu.wireId) {
+              setWires(prev => prev.map(w => w.id === contextMenu.wireId ? { ...w, color } : w));
+            }
           }}
           onChangeShape={(shape) => {
-             if (contextMenu.nodeId) {
-               setNodes(prev => prev.map(n => n.id === contextMenu.nodeId ? { ...n, shape } : n));
-             }
+            if (contextMenu.nodeId) {
+              setNodes(prev => prev.map(n => n.id === contextMenu.nodeId ? { ...n, shape } : n));
+            }
           }}
           onInputCountChange={handleInputCountChange}
+          onOutputCountChange={handleOutputCountChange}
+          outputCount={nodes.find(n => n.id === contextMenu.nodeId)?.outputCount ?? (contextMenu.nodeId ? COMPONENT_CONFIGS[nodes.find(n => n.id === contextMenu.nodeId)?.type as GateType]?.outputCount : undefined)}
           onChangeNodeType={handleChangeNodeType}
           onChangeWireCurveType={(type) => {
-             if (contextMenu.wireId) {
-               setWires(prev => prev.map(w => w.id === contextMenu.wireId ? { ...w, curveType: type } : w));
-             }
+            if (contextMenu.wireId) {
+              setWires(prev => prev.map(w => w.id === contextMenu.wireId ? { ...w, curveType: type } : w));
+            }
           }}
           onChangeWireStyle={(style) => {
-             if (contextMenu.wireId) {
-               setWires(prev => prev.map(w => w.id === contextMenu.wireId ? { ...w, wireStyle: style } : w));
-             }
+            if (contextMenu.wireId) {
+              setWires(prev => prev.map(w => w.id === contextMenu.wireId ? { ...w, wireStyle: style } : w));
+            }
           }}
           onDelete={deleteSelected}
           onDuplicate={duplicateSelected}
@@ -925,17 +1046,19 @@ const App: React.FC = () => {
         />
       )}
 
+      {renderTruthTable()}
+
       <div className="absolute top-4 right-4 bg-[#1e1e1e]/90 border border-zinc-800 rounded p-2 text-zinc-500 text-xs font-mono pointer-events-auto shadow-lg max-w-md backdrop-blur-sm">
         <div className="flex items-center justify-between gap-4">
           <span>Nodes: {nodes.length} | Wires: {wires.length} | Zoom: {Math.round(camera.zoom * 100)}% | Selected: {selectedNodeIds.length + selectedWireIds.length}</span>
-          <button 
+          <button
             onClick={() => setIsMatrixExpanded(!isMatrixExpanded)}
             className="text-zinc-400 hover:text-zinc-300 underline cursor-pointer shrink-0"
           >
             {isMatrixExpanded ? 'Collapse' : 'Expand'}
           </button>
         </div>
-        
+
         {isMatrixExpanded && (
           <div className="mt-2 pt-2 border-t border-zinc-800 max-h-64 overflow-y-auto">
             <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-6 gap-y-1 text-left">
@@ -944,11 +1067,11 @@ const App: React.FC = () => {
               <div className="font-bold text-zinc-400 border-b border-zinc-800 pb-1">Target</div>
               <div className="font-bold text-zinc-400 border-b border-zinc-800 pb-1">ID</div>
               <div className="font-bold text-zinc-400 border-b border-zinc-800 pb-1">Status</div>
-              
+
               {nodes.length === 0 && wires.length === 0 && (
                 <div className="col-span-5 text-zinc-600 italic py-1">None</div>
               )}
-              
+
               {nodes.map(n => (
                 <React.Fragment key={n.id}>
                   <div className="truncate text-zinc-300" title={n.type}>{n.type}</div>
@@ -960,7 +1083,7 @@ const App: React.FC = () => {
                   </div>
                 </React.Fragment>
               ))}
-              
+
               {wires.map(w => (
                 <React.Fragment key={w.id}>
                   <div className="truncate text-zinc-500" title="WIRE">WIRE</div>
