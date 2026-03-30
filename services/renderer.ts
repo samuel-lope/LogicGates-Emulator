@@ -97,7 +97,7 @@ export const checkWireHit = (
     let startY = sourceNode.position.y + (sourceNode.height / 2);
 
     if (sourceNode.type === GateType.DERIVATION) {
-      const outputCount = sourceNode.outputCount ?? COMPONENT_CONFIGS[sourceNode.type].outputCount;
+      const outputCount = COMPONENT_CONFIGS[sourceNode.type].outputCount;
       const pinSpacingOut = sourceNode.height / (outputCount + 1);
       startY = sourceNode.position.y + (pinSpacingOut * (wire.sourcePinIndex + 1));
     }
@@ -169,7 +169,7 @@ export const checkWireHit = (
     let startY = sourceNode.position.y + (sourceNode.height / 2);
 
     if (sourceNode.type === GateType.DERIVATION) {
-      const outputCount = sourceNode.outputCount ?? COMPONENT_CONFIGS[sourceNode.type].outputCount;
+      const outputCount = COMPONENT_CONFIGS[sourceNode.type].outputCount;
       const pinSpacingOut = sourceNode.height / (outputCount + 1);
       startY = sourceNode.position.y + (pinSpacingOut * (wire.sourcePinIndex + 1));
     }
@@ -250,7 +250,7 @@ export const getClosestSegmentIndex = (
   let startY = sourceNode.position.y + (sourceNode.height / 2);
 
   if (sourceNode.type === GateType.DERIVATION) {
-    const outputCount = sourceNode.outputCount ?? COMPONENT_CONFIGS[sourceNode.type].outputCount;
+    const outputCount = COMPONENT_CONFIGS[sourceNode.type].outputCount;
     const pinSpacingOut = sourceNode.height / (outputCount + 1);
     startY = sourceNode.position.y + (pinSpacingOut * (wire.sourcePinIndex + 1));
   }
@@ -349,7 +349,7 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
       ctx.lineTo(w, py);
     } else if (node.type === GateType.DERIVATION && config.outputCount > 0) {
       // Derivation node output leads
-      const outputCount = node.outputCount ?? config.outputCount;
+      const outputCount = config.outputCount;
       const pinSpacingOut = h / (outputCount + 1);
       for (let i = 0; i < outputCount; i++) {
         const py = pinSpacingOut * (i + 1);
@@ -551,7 +551,7 @@ export const renderCircuit = (
     let startY = sourceNode.position.y + (sourceNode.height / 2);
 
     if (sourceNode.type === GateType.DERIVATION) {
-      const outputCount = sourceNode.outputCount ?? COMPONENT_CONFIGS[sourceNode.type].outputCount;
+      const outputCount = COMPONENT_CONFIGS[sourceNode.type].outputCount;
       const pinSpacingOut = sourceNode.height / (outputCount + 1);
       startY = sourceNode.position.y + (pinSpacingOut * (wire.sourcePinIndex + 1));
     }
@@ -817,7 +817,7 @@ export const renderCircuit = (
         && interactionState.hoveredPin?.type === 'output';
       drawPin(ctx, node.position.x + node.width, pinY, false, node.state, isHovered);
     } else if (node.type === GateType.DERIVATION && config.outputCount > 0) {
-      const outputCount = node.outputCount ?? config.outputCount;
+      const outputCount = config.outputCount;
       const pinSpacingOut = node.height / (outputCount + 1);
       for (let i = 0; i < outputCount; i++) {
         const pinY = node.position.y + (pinSpacingOut * (i + 1));
@@ -839,7 +839,7 @@ export const renderCircuit = (
       let startY = sourceNode.position.y + (sourceNode.height / 2);
 
       if (sourceNode.type === GateType.DERIVATION) {
-        const outputCount = sourceNode.outputCount ?? COMPONENT_CONFIGS[sourceNode.type].outputCount;
+        const outputCount = COMPONENT_CONFIGS[sourceNode.type].outputCount;
         const pinSpacingOut = sourceNode.height / (outputCount + 1);
         startY = sourceNode.position.y + (pinSpacingOut * (interactionState.activeWireStart!.pinIndex + 1));
       }

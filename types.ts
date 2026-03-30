@@ -31,7 +31,6 @@ export interface CircuitNode {
   width: number;
   height: number;
   label: string;
-  outputCount?: number; // Custom output count (used by DERIVATION)
   color?: string; // Optional custom color (e.g. for LEDs/Wires/Gates)
   shape?: 'circle' | 'square'; // For Derivation
 }

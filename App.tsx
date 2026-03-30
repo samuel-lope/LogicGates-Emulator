@@ -269,42 +269,6 @@ const App: React.FC = () => {
       };
     }));
   };
-
-  const handleOutputCountChange = (delta: number) => {
-    if (!contextMenu?.nodeId) return;
-
-    const nodeId = contextMenu.nodeId;
-
-    setNodes(prevNodes => prevNodes.map(node => {
-      if (node.id !== nodeId) return node;
-
-      const baseOutputs = COMPONENT_CONFIGS[node.type]?.outputCount || 1;
-      const currentCount = node.outputCount ?? baseOutputs;
-      const newCount = Math.min(32, Math.max(1, currentCount + delta));
-
-      if (newCount === currentCount) return node;
-
-      if (newCount < currentCount) {
-        // Remove wires connected to deleted output pins
-        setWires(prevWires => prevWires.filter(w =>
-          !(w.sourceNodeId === nodeId && w.sourcePinIndex >= newCount)
-        ));
-      }
-
-      // Height logic scaling only needed for Derivations
-      let derivedHeight = node.height;
-      if (node.type === GateType.DERIVATION) {
-          derivedHeight = Math.max(20, (newCount + 1) * 10);
-      }
-
-      return {
-        ...node,
-        outputCount: newCount,
-        height: derivedHeight
-      };
-    }));
-  };
-
   const handleChangeNodeType = (newType: GateType) => {
     if (!contextMenu?.nodeId) return;
 
@@ -472,8 +436,7 @@ const App: React.FC = () => {
         height: config.height,
         inputs: new Array(config.inputCount).fill(false),
         state: false,
-        label: config.label,
-        outputCount: config.outputCount
+        label: config.label
       };
 
       setNodes(prev => [...prev, newNode]);
@@ -1027,8 +990,6 @@ const App: React.FC = () => {
             }
           }}
           onInputCountChange={handleInputCountChange}
-          onOutputCountChange={handleOutputCountChange}
-          outputCount={nodes.find(n => n.id === contextMenu.nodeId)?.outputCount ?? (contextMenu.nodeId ? COMPONENT_CONFIGS[nodes.find(n => n.id === contextMenu.nodeId)?.type as GateType]?.outputCount : undefined)}
           onChangeNodeType={handleChangeNodeType}
           onChangeWireCurveType={(type) => {
             if (contextMenu.wireId) {

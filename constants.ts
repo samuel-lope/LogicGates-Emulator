@@ -149,7 +149,7 @@ export const COMPONENT_CONFIGS: Record<GateType, ComponentConfig> = {
     symbolWidth: 20,
     height: 20,
     inputCount: 1,
-    outputCount: 4,
+    outputCount: 1,
     description: 'A junction point that passes its input state to its output.'
   }
 };

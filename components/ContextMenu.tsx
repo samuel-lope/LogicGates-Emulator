@@ -68,7 +68,6 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     GateType.XOR
   ].includes(nodeType);
 
-  const supportsVariableOutputs = nodeType === GateType.DERIVATION;
 
   const isLogicGate = nodeType && [
     GateType.AND,
@@ -182,29 +181,6 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
         </div>
       )}
 
-      {/* Output Count Selector */}
-      {supportsVariableOutputs && onOutputCountChange && outputCount !== undefined && (
-        <div className="px-4 py-2 border-b border-zinc-700">
-          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">Outputs: {outputCount}</div>
-          <div className="flex items-center justify-between bg-zinc-700 rounded p-1">
-            <button
-              onClick={(e) => { e.stopPropagation(); onOutputCountChange(-1); }}
-              disabled={outputCount <= 1}
-              className={`p-1 rounded hover:bg-zinc-600 text-zinc-200 transition-colors ${outputCount <= 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
-            >
-              <Minus size={14} />
-            </button>
-            <span className="text-xs font-mono text-white">{outputCount}</span>
-            <button
-              onClick={(e) => { e.stopPropagation(); onOutputCountChange(1); }}
-              disabled={outputCount >= 32}
-              className={`p-1 rounded hover:bg-zinc-600 text-zinc-200 transition-colors ${outputCount >= 32 ? 'opacity-30 cursor-not-allowed' : ''}`}
-            >
-              <Plus size={14} />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Wire Curve Type Selector */}
       {wireCurveType && onChangeWireCurveType && (
