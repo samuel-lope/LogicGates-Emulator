@@ -307,7 +307,7 @@ const drawPin = (
   ctx.stroke();
 };
 
-const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected: boolean) => {
+const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected: boolean, hovered: boolean = false) => {
   const { x, y } = node.position;
   const config = COMPONENT_CONFIGS[node.type];
   const w = node.width; // Total pin-to-pin width
@@ -363,14 +363,21 @@ const drawIEEEGate = (ctx: CanvasRenderingContext2D, node: CircuitNode, selected
   // --- Translate to Symbol Origin ---
   ctx.translate(xOffset, 0);
 
-  // Draw Selection Glow
-  if (selected) {
+  // Draw Selection/Hover Glow
+  if (hovered) {
+    ctx.shadowColor = '#00ffff';
+    ctx.shadowBlur = 25;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#00ffff';
+  } else if (selected) {
     ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
     ctx.shadowBlur = 15;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = COLORS.componentBorderSelected;
+  } else {
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = COLORS.componentBorder;
   }
-
-  ctx.lineWidth = selected ? 3 : 2;
-  ctx.strokeStyle = selected ? COLORS.componentBorderSelected : COLORS.componentBorder;
 
   const fillColor = node.color || COLORS.componentBody;
   ctx.fillStyle = fillColor;
@@ -793,7 +800,8 @@ export const renderCircuit = (
     ctx.setTransform(camera.zoom, 0, 0, camera.zoom, camera.x, camera.y);
 
     const isSelected = selectedNodeIds.includes(node.id);
-    drawIEEEGate(ctx, node, isSelected);
+    const isHoveredNode = interactionState.hoveredNodeId === node.id;
+    drawIEEEGate(ctx, node, isSelected, isHoveredNode);
 
     // Draw Pins
     const config = COMPONENT_CONFIGS[node.type];

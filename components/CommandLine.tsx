@@ -6,9 +6,10 @@ import { CircuitNode } from '../types';
 interface CommandLineProps {
   onExecuteCommand: (command: string) => void;
   nodes: CircuitNode[];
+  onHoverSuggestion?: (id: string | null) => void;
 }
 
-const CommandLine: React.FC<CommandLineProps> = ({ onExecuteCommand, nodes }) => {
+const CommandLine: React.FC<CommandLineProps> = ({ onExecuteCommand, nodes, onHoverSuggestion }) => {
   const [command, setCommand] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -26,6 +27,28 @@ const CommandLine: React.FC<CommandLineProps> = ({ onExecuteCommand, nodes }) =>
     setSuggestions(filtered);
     setSelectedIndex(-1);
   }, [command]);
+
+  useEffect(() => {
+    if (onHoverSuggestion) {
+      if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+        const suggestion = suggestions[selectedIndex];
+        // Our short ID is usually 4 characters long
+        if (suggestion && suggestion.length >= 4) {
+          const hoveredNode = nodes.find(n => n.id.toLowerCase().startsWith(suggestion.toLowerCase()));
+          onHoverSuggestion(hoveredNode ? hoveredNode.id : null);
+        } else {
+          onHoverSuggestion(null);
+        }
+      } else {
+        onHoverSuggestion(null);
+      }
+    }
+    
+    // Cleanup on unmount
+    return () => {
+       if (onHoverSuggestion) onHoverSuggestion(null);
+    };
+  }, [selectedIndex, suggestions, nodes, onHoverSuggestion]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

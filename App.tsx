@@ -968,6 +968,13 @@ const App: React.FC = () => {
     });
   };
 
+  const handleCliHoverSuggestion = useCallback((id: string | null) => {
+    setInteraction(prev => ({
+      ...prev,
+      hoveredNodeId: id
+    }));
+  }, []);
+
   return (
     <div className="relative w-screen h-screen bg-[#1e1e1e] overflow-hidden">
       <Toolbar
@@ -1090,7 +1097,11 @@ const App: React.FC = () => {
         )}
       </div>
 
-      <CommandLine onExecuteCommand={executeCommand} nodes={nodes} />
+      <CommandLine 
+        onExecuteCommand={executeCommand} 
+        nodes={nodes} 
+        onHoverSuggestion={handleCliHoverSuggestion} 
+      />
     </div>
   );
 };
