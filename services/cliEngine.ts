@@ -12,6 +12,8 @@ export interface ExecutionContext {
   selectedNodeIds: string[];
   camera: Camera;
   viewportCenterWorld: { x: number; y: number };
+  onSave: () => void;
+  onLoad: () => void;
 }
 
 export type CommandHandler = (args: string[], context: ExecutionContext) => void;
@@ -296,6 +298,21 @@ export function registerCoreCommands() {
 
       setNodes(prev => prev.filter(n => n.id !== targetNodeId));
       setWires(prev => prev.filter(w => w.sourceNodeId !== targetNodeId && w.targetNodeId !== targetNodeId));
+    }
+  });
+  cliEngine.register({
+    name: 'SAVE',
+    description: 'Fazer download do projeto atual (mesma ação do botão Save). Ex: SAVE',
+    handler: (args, context) => {
+      context.onSave();
+    }
+  });
+
+  cliEngine.register({
+    name: 'LOAD',
+    description: 'Abre a janela de seleção para carregar um arquivo JSON. Ex: LOAD',
+    handler: (args, context) => {
+      context.onLoad();
     }
   });
 }

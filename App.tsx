@@ -952,6 +952,17 @@ const App: React.FC = () => {
     );
   };
 
+  const promptLoadProject = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) handleLoadProject(file);
+    };
+    input.click();
+  };
+
   const executeCommand = (cmdStr: string) => {
     cliEngine.execute(cmdStr, {
       nodes,
@@ -964,7 +975,9 @@ const App: React.FC = () => {
         (containerRef.current?.clientWidth || window.innerWidth) / 2,
         (containerRef.current?.clientHeight || window.innerHeight) / 2,
         camera
-      )
+      ),
+      onSave: handleSaveProject,
+      onLoad: promptLoadProject
     });
   };
 
