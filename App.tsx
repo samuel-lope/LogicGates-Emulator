@@ -1090,7 +1090,7 @@ const App: React.FC = () => {
         )}
       </div>
 
-      <CommandLine onExecuteCommand={executeCommand} />
+      <CommandLine onExecuteCommand={executeCommand} nodes={nodes} />
     </div>
   );
 };

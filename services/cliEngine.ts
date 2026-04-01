@@ -16,10 +16,12 @@ export interface ExecutionContext {
 
 export type CommandHandler = (args: string[], context: ExecutionContext) => void;
 
+export type CommandSchemaResolver = (context: Pick<ExecutionContext, 'nodes'> | undefined, prevArgs: string[]) => string[];
+
 export interface CommandDefinition {
   name: string;
   description: string;
-  schema?: (string[] | (() => string[]))[];
+  schema?: (string[] | CommandSchemaResolver)[];
   handler: CommandHandler;
 }
 
@@ -30,7 +32,7 @@ export class CommandRegistry {
     this.commands.set(cmd.name.toUpperCase(), cmd);
   }
 
-  getSuggestions(rawInput: string): string[] {
+  getSuggestions(rawInput: string, context?: Pick<ExecutionContext, 'nodes'>): string[] {
     const parts = rawInput.split(' ');
     
     if (parts.length === 1) {
@@ -46,8 +48,15 @@ export class CommandRegistry {
     if (argIndex >= command.schema.length) return [];
 
     const partial = parts[parts.length - 1].toUpperCase();
+    const prevArgs = parts.slice(1, parts.length - 1);
     const schemaDef = command.schema[argIndex];
-    const options = typeof schemaDef === 'function' ? schemaDef() : schemaDef;
+    
+    let options: string[] = [];
+    if (typeof schemaDef === 'function') {
+      options = schemaDef(context, prevArgs);
+    } else {
+      options = schemaDef;
+    }
 
     return options.filter(opt => opt.toUpperCase().startsWith(partial));
   }
@@ -142,42 +151,53 @@ export function registerCoreCommands() {
 
   cliEngine.register({
     name: 'EDIT',
-    description: 'Edita atributos dos objetos selecionados. Ex: EDIT INPUTS 4',
+    description: 'Edita atributos de um objeto pelo ID. Ex: EDIT OR wzbf INPUTS 4',
     schema: [
+      (context) => {
+         if (!context) return [];
+         const types = new Set(context.nodes.map(n => n.type));
+         return Array.from(types);
+      },
+      (context, prevArgs) => {
+         if (!context) return [];
+         const targetType = prevArgs[0]?.toUpperCase();
+         return context.nodes
+           .filter(n => n.type === targetType)
+           .map(n => n.id.substring(0, 4));
+      },
       ['INPUTS', 'COLOR'],
       () => {
-         // Return all color options + inputs hint
          return ['[2-32]', ...Object.keys(GATE_COLORS), ...Object.keys(LED_COLORS), 'DEFAULT', '#HEX'];
       }
     ],
-    handler: (args, { selectedNodeIds, setNodes, setWires }) => {
-      if (selectedNodeIds.length === 0) {
-        alert('Nenhum objeto selecionado para edição.');
+    handler: (args, { nodes, setNodes, setWires }) => {
+      if (args.length < 4) {
+        alert('Argumentos insuficientes. Ex: EDIT OR wzbf INPUTS 4');
         return;
       }
 
-      if (args.length === 0) {
-        alert('Propriedade a ser editada não informada. Ex: EDIT INPUTS 4');
-        return;
-      }
+      const type = args[0].toUpperCase();
+      const shortId = args[1].toLowerCase();
+      const prop = args[2].toUpperCase();
 
-      const prop = args[0].toUpperCase();
+      const targetNode = nodes.find(n => n.type === type && n.id.toLowerCase().startsWith(shortId));
+      if (!targetNode) {
+          alert(`Objeto não encontrado: ${type} com ID ${shortId}`);
+          return;
+      }
+      
+      const targetNodeId = targetNode.id;
 
       if (prop === 'INPUTS' || prop === 'INPUT') {
-        const valStr = args[1];
-        if (!valStr) {
-          alert('Valor numérico inválido para inputs. Ex: EDIT INPUTS 4');
-          return;
-        }
-
+        const valStr = args[3];
         const val = parseInt(valStr, 10);
         if (isNaN(val)) {
-          alert('Valor numérico inválido para inputs. Ex: EDIT INPUTS 4');
+          alert('Valor numérico inválido para inputs. Ex: EDIT OR wzbf INPUTS 4');
           return;
         }
 
         setNodes(prevNodes => prevNodes.map(node => {
-          if (!selectedNodeIds.includes(node.id)) return node;
+          if (node.id !== targetNodeId) return node;
 
           const supportsVariableInputs = [
             GateType.AND, GateType.OR, GateType.NAND, GateType.NOR, GateType.XOR
@@ -213,9 +233,9 @@ export function registerCoreCommands() {
           };
         }));
       } else if (prop === 'COLOR') {
-        const parsedColor = args[1]?.toUpperCase();
+        const parsedColor = args[3]?.toUpperCase();
         if (!parsedColor || parsedColor === 'DEFAULT' || parsedColor === 'NONE') {
-          setNodes(prev => prev.map(n => selectedNodeIds.includes(n.id) ? { ...n, color: undefined } : n));
+          setNodes(prev => prev.map(n => n.id === targetNodeId ? { ...n, color: undefined } : n));
           return;
         }
 
@@ -225,15 +245,15 @@ export function registerCoreCommands() {
         }
 
         if (!hexColor) {
-           if (/^#[0-9A-F]{6}$/i.test(args[1])) {
-               hexColor = args[1];
+           if (/^#[0-9A-F]{6}$/i.test(args[3])) {
+               hexColor = args[3];
            } else {
                alert(`Cor não reconhecida: ${parsedColor}`);
                return;
            }
         }
 
-        setNodes(prev => prev.map(n => selectedNodeIds.includes(n.id) ? { ...n, color: hexColor } : n));
+        setNodes(prev => prev.map(n => n.id === targetNodeId ? { ...n, color: hexColor } : n));
       } else {
         alert(`Propriedade desconhecida: ${prop}`);
       }

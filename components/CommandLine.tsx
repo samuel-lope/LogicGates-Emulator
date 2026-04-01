@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cliEngine } from '../services/cliEngine';
 
+import { CircuitNode } from '../types';
+
 interface CommandLineProps {
   onExecuteCommand: (command: string) => void;
+  nodes: CircuitNode[];
 }
 
-const CommandLine: React.FC<CommandLineProps> = ({ onExecuteCommand }) => {
+const CommandLine: React.FC<CommandLineProps> = ({ onExecuteCommand, nodes }) => {
   const [command, setCommand] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -19,7 +22,7 @@ const CommandLine: React.FC<CommandLineProps> = ({ onExecuteCommand }) => {
       return;
     }
 
-    const filtered = cliEngine.getSuggestions(command);
+    const filtered = cliEngine.getSuggestions(command, { nodes });
     setSuggestions(filtered);
     setSelectedIndex(-1);
   }, [command]);
