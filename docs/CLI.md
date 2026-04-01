@@ -2,7 +2,7 @@
 
 O LogicGateSim_Web implementa uma engine potente de comandos para manipulação rápida de componentes através de uma barra de texto na parte inferior do simulador. 
 
-A CLI é impulsionada por um sistema **Context-Aware** que fornece sugestões dinâmicas (IntelliSense) com base no estado atual do circuito.
+A CLI é impulsionada por um sistema **Context-Aware** guiado por um **Schema Declarativo** (`objectSchema.ts`) que fornece sugestões dinâmicas (IntelliSense) com base no estado atual do circuito e valida as propriedades permitidas para cada componente.
 
 ---
 

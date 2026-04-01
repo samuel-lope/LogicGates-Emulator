@@ -4,6 +4,11 @@ Recent updates to the **LogicGateSim_Web** digital circuit simulator.
 
 ---
 
+## [1.3.0] - 2026-04-01
+### Added
+- **CLI Object Schema:** Centralized declarative mapping (`services/cli/objectSchema.ts`) that defines all configurable properties, types, and constraints for circuit objects.
+- **Strict Typing:** Enhanced TypeScript interfaces for CLI property descriptors (number, select, preset).
+
 ## [1.2.0] - 2026-04-01
 ### Added
 - **Visual Highlight Mode:** Objects now glow in **Cyan** when navigated through the CLI suggestion list.

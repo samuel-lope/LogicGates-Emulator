@@ -26,13 +26,13 @@ The user wants to export an explicit JSON list within the codebase that defines 
 ## Task Breakdown
 
 ### TASK-1: Create the JSON Schema Data Structure
-- **Agent**: `frontend-specialist`
-- **Skills**: `clean-code`
-- **Priority**: P0
-- **Dependencies**: None
-- **INPUT**: Read existing `types.ts`, `constants.ts` and `ContextMenu.tsx` mapping.
-- **OUTPUT**: Create a structured JSON-like object (e.g. `CLI_OBJECT_SCHEMA`) that explicitly maps the configurable parameters of `GateType` and `Wires`.
-- **VERIFY**: Check TypeScript inference. Ensure `CLI_OBJECT_SCHEMA` can be correctly iterated over to retrieve types, menus, and parameters.
+- [x] **Agent**: `frontend-specialist`
+- [x] **Skills**: `clean-code`
+- [x] **Priority**: P0
+- [x] **Dependencies**: None
+- [x] **INPUT**: Read existing `types.ts`, `constants.ts` and `ContextMenu.tsx` mapping.
+- [x] **OUTPUT**: Create a structured JSON-like object (e.g. `CLI_OBJECT_SCHEMA`) that explicitly maps the configurable parameters of `GateType` and `Wires`.
+- [x] **VERIFY**: Check TypeScript inference. Ensure `CLI_OBJECT_SCHEMA` can be correctly iterated over to retrieve types, menus, and parameters.
 
 **Draft JSON Structure Identified:**
 ```json

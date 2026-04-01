@@ -52,7 +52,11 @@ O simulador segue um pipeline "Model-View-Controller" fortemente adaptado para r
 - **Context-Aware IntelliSense:** Fornece sugestões de autocompletar dinâmicas acessando o estado dos `nodes` em tempo real, permitindo seleção por ID.
 - **Desacoplamento:** Isola a lógica de parsing e execução de comandos do loop de renderização do React.
 
-### 6. Configurações (`constants.ts` e `types.ts`)
+### 6. `services/cli/objectSchema.ts` (Declarative UI/CLI Mapping)
+- **Single Source of Truth:** Define o mapa centralizado de todos os componentes do sistema, suas variantes (`GateType`) e quais propriedades são editáveis (cor, inputs, forma, estilo).
+- **Consumo:** Utilizado pela engine da CLI para validar argumentos e pelo IntelliSense para sugerir parâmetros válidos dinamicamente.
+
+### 7. Configurações (`constants.ts` e `types.ts`)
 - `constants.ts`: Matriz visual do sistema. Contém a paleta de cores Dark Mode (Neon Green, #1e1e1e texturas), distâncias paramétricas de pinos (para portar expansão dinâmica de entradas) e catálogo `COMPONENT_CONFIGS`.
 - `types.ts`: Tipagem estrita de cada elemento do "Modelo" (Nodes, Wires statefuls, Modos de Interação).
 
