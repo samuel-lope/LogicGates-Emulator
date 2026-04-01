@@ -800,7 +800,7 @@ export const renderCircuit = (
     ctx.setTransform(camera.zoom, 0, 0, camera.zoom, camera.x, camera.y);
 
     const isSelected = selectedNodeIds.includes(node.id);
-    const isHoveredNode = interactionState.hoveredNodeId === node.id;
+    const isHoveredNode = interactionState.cliHoveredNodeId === node.id;
     drawIEEEGate(ctx, node, isSelected, isHoveredNode);
 
     // Draw Pins

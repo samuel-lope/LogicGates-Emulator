@@ -69,6 +69,7 @@ export enum InteractionMode {
 export interface InteractionState {
   mode: InteractionMode;
   hoveredNodeId: string | null;
+  cliHoveredNodeId?: string | null;
   hoveredWireId: string | null;
   hoveredPin: { nodeId: string; type: 'input' | 'output'; index: number } | null;
   dragStart: Position; // Screen coordinates

@@ -971,7 +971,7 @@ const App: React.FC = () => {
   const handleCliHoverSuggestion = useCallback((id: string | null) => {
     setInteraction(prev => ({
       ...prev,
-      hoveredNodeId: id
+      cliHoveredNodeId: id
     }));
   }, []);
 
