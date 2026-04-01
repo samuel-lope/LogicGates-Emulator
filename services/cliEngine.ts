@@ -89,10 +89,11 @@ export const cliEngine = new CommandRegistry();
 export function registerCoreCommands() {
   cliEngine.register({
     name: 'ADD',
-    description: 'Adiciona um objeto na tela. Ex: ADD OR 4',
+    description: 'Adiciona um objeto na tela. Ex: ADD OR 4 [300,350]',
     schema: [
       ['AND', 'OR', 'NAND', 'NOR', 'XOR', 'NOT', 'SW', 'LED', 'CLK', 'DER'],
-      ['[2-32]']
+      ['[2-32]'],
+      ['[x,y]']
     ],
     handler: (args, { setNodes, viewportCenterWorld }) => {
       if (args.length === 0) {
@@ -124,22 +125,34 @@ export function registerCoreCommands() {
         GateType.XOR
       ].includes(typeStr);
 
-      if (supportsVariableInputs && args[1]) {
-        const parsedInputs = parseInt(args[1], 10);
-        if (!isNaN(parsedInputs)) {
-          inputCount = Math.min(32, Math.max(2, parsedInputs));
+      // Parse optional [x,y] position token — can appear at any position after the type
+      const POS_REGEX = /^\[(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\]$/;
+      let spawnX: number | null = null;
+      let spawnY: number | null = null;
+
+      for (const arg of args.slice(1)) {
+        const posMatch = arg.match(POS_REGEX);
+        if (posMatch) {
+          spawnX = parseFloat(posMatch[1]);
+          spawnY = parseFloat(posMatch[2]);
+        } else if (supportsVariableInputs) {
+          const parsedInputs = parseInt(arg, 10);
+          if (!isNaN(parsedInputs)) {
+            inputCount = Math.min(32, Math.max(2, parsedInputs));
+          }
         }
       }
 
       const newHeight = supportsVariableInputs ? (inputCount + 1) * PIN_SPACING : config.height;
 
+      // Use explicit world-space position if provided, otherwise center on viewport
+      const posX = spawnX !== null ? spawnX - config.width / 2 : viewportCenterWorld.x - config.width / 2;
+      const posY = spawnY !== null ? spawnY - newHeight / 2 : viewportCenterWorld.y - newHeight / 2;
+
       const newNode: CircuitNode = {
         id: generateId(),
         type: typeStr,
-        position: {
-          x: viewportCenterWorld.x - config.width / 2,
-          y: viewportCenterWorld.y - newHeight / 2
-        },
+        position: { x: posX, y: posY },
         width: config.width,
         height: newHeight,
         inputs: new Array(inputCount).fill(false),
