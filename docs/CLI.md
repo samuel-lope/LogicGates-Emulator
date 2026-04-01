@@ -36,6 +36,7 @@ A barra de comandos possui um sistema de auxílio visual (Dropdown) que nasce ac
 1. **Auto-Sugestão:** Ao digitar as iniciais de um comando ou argumento, o seletor mostrará as opções válidas.
 2. **Navegação com Setas:** Use `Seta para Cima` e `Seta para Baixo` para navegar pela lista de sugestões.
 3. **Auto-Complete:** Pressione `TAB` para preencher o input com o valor selecionado e pular para o próximo argumento.
+4. **Destaque Visual (Glow):** Ao navegar por IDs de componentes (ex: `wzbf`), o objeto correspondente no circuito brilhará imediatamente em **Cyan** no Canvas para facilitar sua identificação antes de qualquer ação.
 
 ---
 

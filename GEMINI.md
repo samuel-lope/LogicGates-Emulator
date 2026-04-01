@@ -29,6 +29,7 @@ O simulador segue um pipeline "Model-View-Controller" fortemente adaptado para r
 
 ### 1. `App.tsx` (O Controlador / Main Loop)
 - Mantém o estado global da aplicação (nós, conexões, câmera, estado de interação).
+- **Gerenciamento de Hover:** Diferencia `hoveredNodeId` (Mouse) de `cliHoveredNodeId` (Terminal) para evitar conflitos visuais durante a navegação.
 - Contém o `requestAnimationFrame` loop que chama a engine de renderização continuamente.
 - Dispara a avaliação lógica (`propagateCircuit`) sempre que o circuito sofre alterações (conexões, toggles de pinos).
 - Contém hooks que interceptam os cliques para manipular seleção (marquee), drag & drop, e exibição de menus de contexto.
