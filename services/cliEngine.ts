@@ -19,6 +19,7 @@ export type CommandHandler = (args: string[], context: ExecutionContext) => void
 export interface CommandDefinition {
   name: string;
   description: string;
+  schema?: (string[] | (() => string[]))[];
   handler: CommandHandler;
 }
 
@@ -27,6 +28,28 @@ export class CommandRegistry {
 
   register(cmd: CommandDefinition) {
     this.commands.set(cmd.name.toUpperCase(), cmd);
+  }
+
+  getSuggestions(rawInput: string): string[] {
+    const parts = rawInput.split(' ');
+    
+    if (parts.length === 1) {
+      const partial = parts[0].toUpperCase();
+      return Array.from(this.commands.keys()).filter(cmd => cmd.startsWith(partial));
+    }
+
+    const commandName = parts[0].toUpperCase();
+    const command = this.commands.get(commandName);
+    if (!command || !command.schema) return [];
+
+    const argIndex = parts.length - 2; 
+    if (argIndex >= command.schema.length) return [];
+
+    const partial = parts[parts.length - 1].toUpperCase();
+    const schemaDef = command.schema[argIndex];
+    const options = typeof schemaDef === 'function' ? schemaDef() : schemaDef;
+
+    return options.filter(opt => opt.toUpperCase().startsWith(partial));
   }
 
   execute(rawCommand: string, context: ExecutionContext) {
@@ -56,13 +79,25 @@ export function registerCoreCommands() {
   cliEngine.register({
     name: 'ADD',
     description: 'Adiciona um objeto na tela. Ex: ADD OR 4',
+    schema: [
+      ['AND', 'OR', 'NAND', 'NOR', 'XOR', 'NOT', 'SW', 'LED', 'CLK', 'DER'],
+      ['[2-32]']
+    ],
     handler: (args, { setNodes, viewportCenterWorld }) => {
       if (args.length === 0) {
         alert('Falta o tipo do objeto. Ex: ADD AND');
         return;
       }
 
-      const typeStr = args[0].toUpperCase() as GateType;
+      const aliasMap: Record<string, GateType> = {
+        'SW': GateType.INPUT_SWITCH,
+        'LED': GateType.OUTPUT_LAMP,
+        'CLK': GateType.CLOCK,
+        'DER': GateType.DERIVATION
+      };
+
+      const rawType = args[0].toUpperCase();
+      const typeStr = (aliasMap[rawType] || rawType) as GateType;
       const config = COMPONENT_CONFIGS[typeStr];
       if (!config) {
         alert(`Objeto inválido ou desconhecido: ${args[0]}`);
@@ -108,6 +143,13 @@ export function registerCoreCommands() {
   cliEngine.register({
     name: 'EDIT',
     description: 'Edita atributos dos objetos selecionados. Ex: EDIT INPUTS 4',
+    schema: [
+      ['INPUTS', 'COLOR'],
+      () => {
+         // Return all color options + inputs hint
+         return ['[2-32]', ...Object.keys(GATE_COLORS), ...Object.keys(LED_COLORS), 'DEFAULT', '#HEX'];
+      }
+    ],
     handler: (args, { selectedNodeIds, setNodes, setWires }) => {
       if (selectedNodeIds.length === 0) {
         alert('Nenhum objeto selecionado para edição.');
