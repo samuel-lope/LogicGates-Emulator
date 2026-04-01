@@ -259,4 +259,43 @@ export function registerCoreCommands() {
       }
     }
   });
+
+  cliEngine.register({
+    name: 'DEL',
+    description: 'Deleta um objeto pelo ID. Ex: DEL OR wzbf',
+    schema: [
+      (context) => {
+         if (!context) return [];
+         const types = new Set(context.nodes.map(n => n.type));
+         return Array.from(types);
+      },
+      (context, prevArgs) => {
+         if (!context) return [];
+         const targetType = prevArgs[0]?.toUpperCase();
+         return context.nodes
+           .filter(n => n.type === targetType)
+           .map(n => n.id.substring(0, 4));
+      }
+    ],
+    handler: (args, { nodes, setNodes, setWires }) => {
+      if (args.length < 2) {
+        alert('Argumentos insuficientes. Ex: DEL OR wzbf');
+        return;
+      }
+
+      const type = args[0].toUpperCase();
+      const shortId = args[1].toLowerCase();
+
+      const targetNode = nodes.find(n => n.type === type && n.id.toLowerCase().startsWith(shortId));
+      if (!targetNode) {
+          alert(`Objeto não encontrado: ${type} com ID ${shortId}`);
+          return;
+      }
+      
+      const targetNodeId = targetNode.id;
+
+      setNodes(prev => prev.filter(n => n.id !== targetNodeId));
+      setWires(prev => prev.filter(w => w.sourceNodeId !== targetNodeId && w.targetNodeId !== targetNodeId));
+    }
+  });
 }
