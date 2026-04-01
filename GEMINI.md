@@ -46,7 +46,12 @@ O simulador segue um pipeline "Model-View-Controller" fortemente adaptado para r
 - Recebe tabelas verdade definidas pelo usuário.
 - Simplifica as equações booleanas minimizadas e converte-as de volta em `CircuitNodes` na tela de forma procedimental.
 
-### 5. Configurações (`constants.ts` e `types.ts`)
+### 5. `services/cliEngine.ts` (The Command API)
+- **Motor de Comandos:** Gerencia o `CommandRegistry` onde ações como `ADD`, `EDIT` e `DEL` são registradas.
+- **Context-Aware IntelliSense:** Fornece sugestões de autocompletar dinâmicas acessando o estado dos `nodes` em tempo real, permitindo seleção por ID.
+- **Desacoplamento:** Isola a lógica de parsing e execução de comandos do loop de renderização do React.
+
+### 6. Configurações (`constants.ts` e `types.ts`)
 - `constants.ts`: Matriz visual do sistema. Contém a paleta de cores Dark Mode (Neon Green, #1e1e1e texturas), distâncias paramétricas de pinos (para portar expansão dinâmica de entradas) e catálogo `COMPONENT_CONFIGS`.
 - `types.ts`: Tipagem estrita de cada elemento do "Modelo" (Nodes, Wires statefuls, Modos de Interação).
 
