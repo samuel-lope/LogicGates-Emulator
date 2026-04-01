@@ -9,11 +9,13 @@ import {
   Position,
   ProjectData
 } from './types';
-import { COMPONENT_CONFIGS, COLORS, PIN_SPACING } from './constants';
+import { COMPONENT_CONFIGS, COLORS, PIN_SPACING, GATE_COLORS, LED_COLORS } from './constants';
 import { renderCircuit, screenToWorld, worldToScreen, checkWireHit, checkWaypointHit, getClosestSegmentIndex } from './services/renderer';
 import { propagateCircuit, computeNodeLogic } from './services/circuitEngine';
 import Toolbar from './components/Toolbar';
 import { ContextMenu } from './components/ContextMenu';
+import CommandLine from './components/CommandLine';
+import { cliEngine, registerCoreCommands } from './services/cliEngine';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -64,6 +66,10 @@ const App: React.FC = () => {
   useEffect(() => { cameraRef.current = camera; }, [camera]);
   useEffect(() => { selectedNodeIdsRef.current = selectedNodeIds; }, [selectedNodeIds]);
   useEffect(() => { selectedWireIdsRef.current = selectedWireIds; }, [selectedWireIds]);
+
+  useEffect(() => {
+    registerCoreCommands();
+  }, []);
 
   // Main Logic Loop (Clock & Propagation)
   useEffect(() => {
@@ -946,6 +952,22 @@ const App: React.FC = () => {
     );
   };
 
+  const executeCommand = (cmdStr: string) => {
+    cliEngine.execute(cmdStr, {
+      nodes,
+      setNodes,
+      wires,
+      setWires,
+      selectedNodeIds,
+      camera,
+      viewportCenterWorld: screenToWorld(
+        (containerRef.current?.clientWidth || window.innerWidth) / 2,
+        (containerRef.current?.clientHeight || window.innerHeight) / 2,
+        camera
+      )
+    });
+  };
+
   return (
     <div className="relative w-screen h-screen bg-[#1e1e1e] overflow-hidden">
       <Toolbar
@@ -1067,6 +1089,8 @@ const App: React.FC = () => {
           </div>
         )}
       </div>
+
+      <CommandLine onExecuteCommand={executeCommand} />
     </div>
   );
 };
