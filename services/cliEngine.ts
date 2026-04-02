@@ -12,7 +12,7 @@ export interface ExecutionContext {
   selectedNodeIds: string[];
   camera: Camera;
   viewportCenterWorld: { x: number; y: number };
-  onSave: () => void;
+  onSave: (filename?: string) => void;
   onLoad: () => void;
 }
 
@@ -315,9 +315,13 @@ export function registerCoreCommands() {
   });
   cliEngine.register({
     name: 'SAVE',
-    description: 'Fazer download do projeto atual (mesma ação do botão Save). Ex: SAVE',
+    description: 'Fazer download do projeto atual. Nome opcional para o arquivo. Ex: SAVE meucircuito',
+    schema: [
+      ['[nome-do-arquivo]']
+    ],
     handler: (args, context) => {
-      context.onSave();
+      const filename = args[0] || undefined;
+      context.onSave(filename);
     }
   });
 

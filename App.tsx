@@ -329,7 +329,7 @@ const App: React.FC = () => {
 
   // --- Save / Load ---
 
-  const handleSaveProject = () => {
+  const handleSaveProject = (filename?: string) => {
     const projectData: ProjectData = {
       version: '1.0.0',
       nodes: nodes,
@@ -340,9 +340,12 @@ const App: React.FC = () => {
     const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
+    const sanitized = filename ? filename.replace(/[^a-zA-Z0-9_\-]/g, '_') : null;
+    const downloadName = sanitized ? `${sanitized}.json` : `circuit-${new Date().toISOString().slice(0, 10)}.json`;
+
     const a = document.createElement('a');
     a.href = url;
-    a.download = `circuit-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = downloadName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
