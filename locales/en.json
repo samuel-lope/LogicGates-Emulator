@@ -1,0 +1,100 @@
+{
+  "meta": { "name": "English", "code": "en" },
+  "toolbar": {
+    "appName": "LogicGateSim",
+    "version": "Web Edition v1.0",
+    "sectionProject": "Project",
+    "btnSave": "Save",
+    "btnSaveTitle": "Download JSON",
+    "btnLoad": "Load",
+    "btnLoadTitle": "Upload JSON",
+    "sectionTools": "Tools",
+    "toolSelect": "Selection / Drag",
+    "wireType": "Wire Type",
+    "wireCurved": "Curved",
+    "wireStraight": "Straight",
+    "wireRemote": "Remote",
+    "wireCurvedTitle": "Curved Wire",
+    "wireStraightTitle": "Straight Wire",
+    "wireRemoteTitle": "Remote Wire",
+    "sectionComponents": "Components",
+    "hintLeftClick": "Left Click: Place / Select / Wire",
+    "hintRightClick": "Right Click: Menu / Pan / Cancel",
+    "hintDoubleClick": "Double Click (Straight Wire): Add / Remove Node",
+    "hintWheel": "Wheel: Zoom",
+    "sectionLanguage": "Language"
+  },
+  "contextMenu": {
+    "gateType": "Gate Type",
+    "shape": "Shape",
+    "colorGate": "Gate Color",
+    "colorDerivation": "Derivation Color",
+    "colorLed": "LED Color",
+    "colorWire": "Wire Color",
+    "colorDefault": "Default",
+    "inputs": "Inputs",
+    "wireType": "Wire Type",
+    "wireStyle": "Wire Style",
+    "wireSolid": "Solid",
+    "wireDots": "Dots",
+    "truthTable": "Truth Table",
+    "duplicate": "Duplicate",
+    "delete": "Delete",
+    "shapeCircle": "Circle",
+    "shapeSquare": "Square",
+    "wireCurvedTitle": "Curved",
+    "wireStraightTitle": "Straight",
+    "wireRemoteTitle": "Remote",
+    "derivationType": "Derivation"
+  },
+  "commandLine": {
+    "placeholder": "Ex: ADD SW or EDIT OR wzbf COLOR RED",
+    "submit": "Run"
+  },
+  "cli": {
+    "cmdAdd": {
+      "description": "Adds an object to the canvas. Ex: ADD OR 4 [300,350]"
+    },
+    "cmdEdit": {
+      "description": "Edits attributes of an object by ID. Ex: EDIT OR wzbf INPUTS 4"
+    },
+    "cmdDel": {
+      "description": "Deletes an object by ID. Ex: DEL OR wzbf"
+    },
+    "cmdSave": {
+      "description": "Downloads the current project. Optional filename. Ex: SAVE mycircuit"
+    },
+    "cmdLoad": {
+      "description": "Opens file picker to load a JSON file. Ex: LOAD"
+    },
+    "errors": {
+      "unknownCommand": "Unknown command: {cmd}",
+      "executionError": "Error executing '{cmd}': {error}",
+      "addMissingType": "Missing object type. Ex: ADD AND",
+      "addInvalidType": "Unknown or invalid object: {type}",
+      "editInsufficientArgs": "Insufficient arguments. Ex: EDIT OR wzbf INPUTS 4",
+      "editNotFound": "Object not found: {type} with ID {id}",
+      "editInvalidInputValue": "Invalid numeric value for inputs. Ex: EDIT OR wzbf INPUTS 4",
+      "editUnknownProperty": "Unknown property: {prop}",
+      "editUnknownColor": "Unrecognized color: {color}",
+      "delInsufficientArgs": "Insufficient arguments. Ex: DEL OR wzbf",
+      "delNotFound": "Object not found: {type} with ID {id}"
+    }
+  },
+  "components": {
+    "AND": { "description": "Output High only if all inputs are High." },
+    "OR": { "description": "Output High if any input is High." },
+    "NOT": { "description": "Inverts the input signal." },
+    "NAND": { "description": "AND followed by NOT." },
+    "NOR": { "description": "OR followed by NOT." },
+    "XOR": { "description": "Exclusive OR." },
+    "INPUT_SWITCH": { "description": "Toggle switch for logic High/Low." },
+    "OUTPUT_LAMP": { "description": "Visual indicator of signal state." },
+    "CLOCK": { "description": "Toggles signal periodically." },
+    "DERIVATION": { "description": "Junction point — passes input state to outputs." }
+  },
+  "errors": {
+    "invalidFileFormat": "Invalid project file format.",
+    "failedToLoad": "Failed to load project file."
+  }
+}

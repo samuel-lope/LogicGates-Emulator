@@ -16,6 +16,7 @@ import Toolbar from './components/Toolbar';
 import { ContextMenu } from './components/ContextMenu';
 import CommandLine from './components/CommandLine';
 import { cliEngine, registerCoreCommands } from './services/cliEngine';
+import { t } from './locales';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -370,11 +371,11 @@ const App: React.FC = () => {
           setSelectedNodeIds([]);
           setSelectedWireIds([]);
         } else {
-          alert("Invalid project file format.");
+          alert(t('errors.invalidFileFormat'));
         }
       } catch (err) {
         console.error("Failed to parse project file", err);
-        alert("Failed to load project file.");
+        alert(t('errors.failedToLoad'));
       }
     };
     reader.readAsText(file);

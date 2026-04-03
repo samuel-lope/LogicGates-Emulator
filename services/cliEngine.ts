@@ -1,6 +1,7 @@
 import React from 'react';
 import { CircuitNode, Wire, Camera, GateType } from '../types';
 import { COMPONENT_CONFIGS, PIN_SPACING, GATE_COLORS, LED_COLORS } from '../constants';
+import { t } from '../locales';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -22,7 +23,7 @@ export type CommandSchemaResolver = (context: Pick<ExecutionContext, 'nodes'> | 
 
 export interface CommandDefinition {
   name: string;
-  description: string;
+  descriptionKey: string;
   schema?: (string[] | CommandSchemaResolver)[];
   handler: CommandHandler;
 }
@@ -72,14 +73,14 @@ export class CommandRegistry {
 
     const command = this.commands.get(actionName);
     if (!command) {
-      alert(`Comando desconhecido: ${actionName}`);
+      alert(t('cli.errors.unknownCommand', { cmd: actionName }));
       return;
     }
 
     try {
       command.handler(args, context);
     } catch (err: any) {
-      alert(`Erro executando '${actionName}': ${err.message}`);
+      alert(t('cli.errors.executionError', { cmd: actionName, error: err.message }));
     }
   }
 }
@@ -89,7 +90,7 @@ export const cliEngine = new CommandRegistry();
 export function registerCoreCommands() {
   cliEngine.register({
     name: 'ADD',
-    description: 'Adiciona um objeto na tela. Ex: ADD OR 4 [300,350]',
+    descriptionKey: 'cli.cmdAdd.description',
     schema: [
       ['AND', 'OR', 'NAND', 'NOR', 'XOR', 'NOT', 'SW', 'LED', 'CLK', 'DER'],
       ['[2-32]'],
@@ -97,7 +98,7 @@ export function registerCoreCommands() {
     ],
     handler: (args, { setNodes, viewportCenterWorld }) => {
       if (args.length === 0) {
-        alert('Falta o tipo do objeto. Ex: ADD AND');
+        alert(t('cli.errors.addMissingType'));
         return;
       }
 
@@ -112,7 +113,7 @@ export function registerCoreCommands() {
       const typeStr = (aliasMap[rawType] || rawType) as GateType;
       const config = COMPONENT_CONFIGS[typeStr];
       if (!config) {
-        alert(`Objeto inválido ou desconhecido: ${args[0]}`);
+        alert(t('cli.errors.addInvalidType', { type: args[0] }));
         return;
       }
 
@@ -125,7 +126,6 @@ export function registerCoreCommands() {
         GateType.XOR
       ].includes(typeStr);
 
-      // Parse optional [x,y] position token — can appear at any position after the type
       const POS_REGEX = /^\[(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\]$/;
       let spawnX: number | null = null;
       let spawnY: number | null = null;
@@ -145,7 +145,6 @@ export function registerCoreCommands() {
 
       const newHeight = supportsVariableInputs ? (inputCount + 1) * PIN_SPACING : config.height;
 
-      // Use explicit world-space position if provided, otherwise center on viewport
       const posX = spawnX !== null ? spawnX - config.width / 2 : viewportCenterWorld.x - config.width / 2;
       const posY = spawnY !== null ? spawnY - newHeight / 2 : viewportCenterWorld.y - newHeight / 2;
 
@@ -166,7 +165,7 @@ export function registerCoreCommands() {
 
   cliEngine.register({
     name: 'EDIT',
-    description: 'Edita atributos de um objeto pelo ID. Ex: EDIT OR wzbf INPUTS 4',
+    descriptionKey: 'cli.cmdEdit.description',
     schema: [
       (context) => {
          if (!context) return [];
@@ -187,7 +186,7 @@ export function registerCoreCommands() {
     ],
     handler: (args, { nodes, setNodes, setWires }) => {
       if (args.length < 4) {
-        alert('Argumentos insuficientes. Ex: EDIT OR wzbf INPUTS 4');
+        alert(t('cli.errors.editInsufficientArgs'));
         return;
       }
 
@@ -197,7 +196,7 @@ export function registerCoreCommands() {
 
       const targetNode = nodes.find(n => n.type === type && n.id.toLowerCase().startsWith(shortId));
       if (!targetNode) {
-          alert(`Objeto não encontrado: ${type} com ID ${shortId}`);
+          alert(t('cli.errors.editNotFound', { type, id: shortId }));
           return;
       }
       
@@ -207,7 +206,7 @@ export function registerCoreCommands() {
         const valStr = args[3];
         const val = parseInt(valStr, 10);
         if (isNaN(val)) {
-          alert('Valor numérico inválido para inputs. Ex: EDIT OR wzbf INPUTS 4');
+          alert(t('cli.errors.editInvalidInputValue'));
           return;
         }
 
@@ -233,7 +232,6 @@ export function registerCoreCommands() {
             }
           } else {
             newInputs = newInputs.slice(0, newCount);
-            // Clean wires attached to removed pins
             setWires(prevWires => prevWires.filter(w =>
               !(w.targetNodeId === node.id && w.targetPinIndex >= newCount)
             ));
@@ -263,21 +261,21 @@ export function registerCoreCommands() {
            if (/^#[0-9A-F]{6}$/i.test(args[3])) {
                hexColor = args[3];
            } else {
-               alert(`Cor não reconhecida: ${parsedColor}`);
+               alert(t('cli.errors.editUnknownColor', { color: parsedColor }));
                return;
            }
         }
 
         setNodes(prev => prev.map(n => n.id === targetNodeId ? { ...n, color: hexColor } : n));
       } else {
-        alert(`Propriedade desconhecida: ${prop}`);
+        alert(t('cli.errors.editUnknownProperty', { prop }));
       }
     }
   });
 
   cliEngine.register({
     name: 'DEL',
-    description: 'Deleta um objeto pelo ID. Ex: DEL OR wzbf',
+    descriptionKey: 'cli.cmdDel.description',
     schema: [
       (context) => {
          if (!context) return [];
@@ -294,7 +292,7 @@ export function registerCoreCommands() {
     ],
     handler: (args, { nodes, setNodes, setWires }) => {
       if (args.length < 2) {
-        alert('Argumentos insuficientes. Ex: DEL OR wzbf');
+        alert(t('cli.errors.delInsufficientArgs'));
         return;
       }
 
@@ -303,7 +301,7 @@ export function registerCoreCommands() {
 
       const targetNode = nodes.find(n => n.type === type && n.id.toLowerCase().startsWith(shortId));
       if (!targetNode) {
-          alert(`Objeto não encontrado: ${type} com ID ${shortId}`);
+          alert(t('cli.errors.delNotFound', { type, id: shortId }));
           return;
       }
       
@@ -313,11 +311,12 @@ export function registerCoreCommands() {
       setWires(prev => prev.filter(w => w.sourceNodeId !== targetNodeId && w.targetNodeId !== targetNodeId));
     }
   });
+
   cliEngine.register({
     name: 'SAVE',
-    description: 'Fazer download do projeto atual. Nome opcional para o arquivo. Ex: SAVE meucircuito',
+    descriptionKey: 'cli.cmdSave.description',
     schema: [
-      ['[nome-do-arquivo]']
+      ['[filename]']
     ],
     handler: (args, context) => {
       const filename = args[0] || undefined;
@@ -327,7 +326,7 @@ export function registerCoreCommands() {
 
   cliEngine.register({
     name: 'LOAD',
-    description: 'Abre a janela de seleção para carregar um arquivo JSON. Ex: LOAD',
+    descriptionKey: 'cli.cmdLoad.description',
     handler: (args, context) => {
       context.onLoad();
     }

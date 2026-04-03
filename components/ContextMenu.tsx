@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Copy, Trash2, Minus, Plus, Activity, MoveRight, Wifi, MoreHorizontal, Table } from 'lucide-react';
 import { GateType, WireCurveType, WireStyle } from '../types';
 import { LED_COLORS, GATE_COLORS } from '../constants';
+import { useTranslation } from '../locales';
 
 interface ContextMenuProps {
   x: number;
@@ -48,6 +49,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   onClose,
   onShowTruthTable
 }) => {
+  const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,12 +58,10 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
         onClose();
       }
     };
-    // Use mousedown to detect outside clicks earlier than click
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
-  // Determine if this node type supports variable inputs
   const supportsVariableInputs = nodeType && [
     GateType.AND,
     GateType.OR,
@@ -69,7 +69,6 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     GateType.NOR,
     GateType.XOR
   ].includes(nodeType);
-
 
   const isLogicGate = nodeType && [
     GateType.AND,
@@ -81,6 +80,13 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     GateType.DERIVATION
   ].includes(nodeType);
 
+  const colorSectionLabel = () => {
+    if (isLogicGate) return t('contextMenu.colorGate');
+    if (nodeType === GateType.DERIVATION) return t('contextMenu.colorDerivation');
+    if (nodeType) return t('contextMenu.colorLed');
+    return t('contextMenu.colorWire');
+  };
+
   return (
     <div
       ref={menuRef}
@@ -90,7 +96,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       {/* Node Type Selector */}
       {isLogicGate && onChangeNodeType && (
         <div className="px-4 py-2 border-b border-zinc-700">
-          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">Gate Type</div>
+          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">{t('contextMenu.gateType')}</div>
           <select
             value={nodeType}
             onChange={(e) => { e.stopPropagation(); onChangeNodeType(e.target.value as GateType); }}
@@ -102,7 +108,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             <option value={GateType.NOR}>NOR</option>
             <option value={GateType.XOR}>XOR</option>
             <option value={GateType.NOT}>NOT</option>
-            <option value={GateType.DERIVATION}>Derivation</option>
+            <option value={GateType.DERIVATION}>{t('contextMenu.derivationType')}</option>
           </select>
         </div>
       )}
@@ -110,19 +116,19 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       {/* Shape Selector */}
       {nodeType === GateType.DERIVATION && onChangeShape && (
         <div className="px-4 py-2 border-b border-zinc-700">
-          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">Shape</div>
+          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">{t('contextMenu.shape')}</div>
           <div className="flex gap-1 bg-zinc-700 rounded p-1">
             <button
               onClick={(e) => { e.stopPropagation(); onChangeShape('circle'); }}
-              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${shape === 'circle' || !shape ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
-              title="Circle"
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors cursor-pointer ${shape === 'circle' || !shape ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title={t('contextMenu.shapeCircle')}
             >
               <div className="w-3 h-3 rounded-full border-2 border-current" />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onChangeShape('square'); }}
-              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${shape === 'square' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
-              title="Square"
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors cursor-pointer ${shape === 'square' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title={t('contextMenu.shapeSquare')}
             >
               <div className="w-3 h-3 border-2 border-current" />
             </button>
@@ -134,7 +140,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       {(nodeType === GateType.OUTPUT_LAMP || nodeType === GateType.DERIVATION || !nodeType || isLogicGate) && onColorChange && (
         <div className="px-4 py-2 border-b border-zinc-700">
           <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">
-            {isLogicGate ? 'Gate Color' : nodeType === GateType.DERIVATION ? 'Derivation Color' : nodeType ? 'LED Color' : 'Wire Color'}
+            {colorSectionLabel()}
           </div>
           <div className="flex gap-2 items-center flex-wrap">
             {Object.entries(isLogicGate || nodeType === GateType.DERIVATION ? GATE_COLORS : LED_COLORS).map(([name, color]) => (
@@ -149,10 +155,10 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             {(!nodeType || isLogicGate || nodeType === GateType.DERIVATION) && (
               <button
                 onClick={(e) => { e.stopPropagation(); onColorChange(''); }}
-                className={`text-[10px] px-1.5 py-0.5 rounded border border-zinc-600 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors ${!currentColor ? 'bg-zinc-700 text-white' : ''}`}
-                title="Default Color"
+                className={`text-[10px] px-1.5 py-0.5 rounded border border-zinc-600 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors cursor-pointer ${!currentColor ? 'bg-zinc-700 text-white' : ''}`}
+                title={t('contextMenu.colorDefault')}
               >
-                Default
+                {t('contextMenu.colorDefault')}
               </button>
             )}
           </div>
@@ -162,12 +168,12 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       {/* Input Count Selector */}
       {supportsVariableInputs && onInputCountChange && inputCount !== undefined && (
         <div className="px-4 py-2 border-b border-zinc-700">
-          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">Inputs: {inputCount}</div>
+          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">{t('contextMenu.inputs')}: {inputCount}</div>
           <div className="flex items-center justify-between bg-zinc-700 rounded p-1">
             <button
               onClick={(e) => { e.stopPropagation(); onInputCountChange(-1); }}
               disabled={inputCount <= 2}
-              className={`p-1 rounded hover:bg-zinc-600 text-zinc-200 transition-colors ${inputCount <= 2 ? 'opacity-30 cursor-not-allowed' : ''}`}
+              className={`p-1 rounded hover:bg-zinc-600 text-zinc-200 transition-colors cursor-pointer ${inputCount <= 2 ? 'opacity-30 cursor-not-allowed' : ''}`}
             >
               <Minus size={14} />
             </button>
@@ -175,7 +181,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             <button
               onClick={(e) => { e.stopPropagation(); onInputCountChange(1); }}
               disabled={inputCount >= 32}
-              className={`p-1 rounded hover:bg-zinc-600 text-zinc-200 transition-colors ${inputCount >= 32 ? 'opacity-30 cursor-not-allowed' : ''}`}
+              className={`p-1 rounded hover:bg-zinc-600 text-zinc-200 transition-colors cursor-pointer ${inputCount >= 32 ? 'opacity-30 cursor-not-allowed' : ''}`}
             >
               <Plus size={14} />
             </button>
@@ -183,30 +189,29 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
         </div>
       )}
 
-
       {/* Wire Curve Type Selector */}
       {wireCurveType && onChangeWireCurveType && (
         <div className="px-4 py-2 border-b border-zinc-700">
-          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">Wire Type</div>
+          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">{t('contextMenu.wireType')}</div>
           <div className="flex gap-1 bg-zinc-700 rounded p-1">
             <button
               onClick={(e) => { e.stopPropagation(); onChangeWireCurveType('curved'); }}
-              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${wireCurveType === 'curved' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
-              title="Curved"
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors cursor-pointer ${wireCurveType === 'curved' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title={t('contextMenu.wireCurvedTitle')}
             >
               <Activity size={14} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onChangeWireCurveType('straight'); }}
-              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${wireCurveType === 'straight' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
-              title="Straight"
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors cursor-pointer ${wireCurveType === 'straight' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title={t('contextMenu.wireStraightTitle')}
             >
               <MoveRight size={14} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onChangeWireCurveType('remote'); }}
-              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${wireCurveType === 'remote' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
-              title="Remote"
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors cursor-pointer ${wireCurveType === 'remote' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title={t('contextMenu.wireRemoteTitle')}
             >
               <Wifi size={14} />
             </button>
@@ -217,19 +222,19 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       {/* Wire Style Selector */}
       {!nodeType && wireCurveType && wireStyle && onChangeWireStyle && wireCurveType !== 'remote' && (
         <div className="px-4 py-2 border-b border-zinc-700">
-          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">Wire Style</div>
+          <div className="text-[10px] text-zinc-500 mb-2 uppercase font-semibold">{t('contextMenu.wireStyle')}</div>
           <div className="flex gap-1 bg-zinc-700 rounded p-1">
             <button
               onClick={(e) => { e.stopPropagation(); onChangeWireStyle('solid'); }}
-              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${wireStyle === 'solid' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
-              title="Solid"
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors cursor-pointer ${wireStyle === 'solid' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title={t('contextMenu.wireSolid')}
             >
               <Minus size={14} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onChangeWireStyle('dots'); }}
-              className={`flex-1 flex justify-center p-1.5 rounded transition-colors ${wireStyle === 'dots' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
-              title="Dots"
+              className={`flex-1 flex justify-center p-1.5 rounded transition-colors cursor-pointer ${wireStyle === 'dots' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'}`}
+              title={t('contextMenu.wireDots')}
             >
               <MoreHorizontal size={14} />
             </button>
@@ -243,7 +248,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
           className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white flex items-center gap-2 transition-colors cursor-pointer border-b border-zinc-700"
         >
           <Table size={14} />
-          Tabela Verdade
+          {t('contextMenu.truthTable')}
         </button>
       )}
 
@@ -253,7 +258,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
           className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
         >
           <Copy size={14} />
-          Duplicate
+          {t('contextMenu.duplicate')}
         </button>
       )}
       <button
@@ -261,7 +266,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
         className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-zinc-700 hover:text-red-300 flex items-center gap-2 transition-colors cursor-pointer"
       >
         <Trash2 size={14} />
-        Delete
+        {t('contextMenu.delete')}
       </button>
     </div>
   );

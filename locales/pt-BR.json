@@ -1,0 +1,100 @@
+{
+  "meta": { "name": "Português (Brasil)", "code": "pt-BR" },
+  "toolbar": {
+    "appName": "LogicGateSim",
+    "version": "Web Edition v1.0",
+    "sectionProject": "Projeto",
+    "btnSave": "Salvar",
+    "btnSaveTitle": "Baixar JSON",
+    "btnLoad": "Carregar",
+    "btnLoadTitle": "Abrir JSON",
+    "sectionTools": "Ferramentas",
+    "toolSelect": "Seleção / Arrastar",
+    "wireType": "Tipo de Fio",
+    "wireCurved": "Curvo",
+    "wireStraight": "Reto",
+    "wireRemote": "Remoto",
+    "wireCurvedTitle": "Fio Curvo",
+    "wireStraightTitle": "Fio Reto",
+    "wireRemoteTitle": "Fio Remoto",
+    "sectionComponents": "Componentes",
+    "hintLeftClick": "Clique Esq.: Colocar / Selecionar / Fiar",
+    "hintRightClick": "Clique Dir.: Menu / Panorâmica / Cancelar",
+    "hintDoubleClick": "Duplo Clique (Fio Reto): Adicionar / Remover Nó",
+    "hintWheel": "Roda: Zoom",
+    "sectionLanguage": "Idioma"
+  },
+  "contextMenu": {
+    "gateType": "Tipo de Porta",
+    "shape": "Forma",
+    "colorGate": "Cor da Porta",
+    "colorDerivation": "Cor da Derivação",
+    "colorLed": "Cor do LED",
+    "colorWire": "Cor do Fio",
+    "colorDefault": "Padrão",
+    "inputs": "Entradas",
+    "wireType": "Tipo de Fio",
+    "wireStyle": "Estilo do Fio",
+    "wireSolid": "Sólido",
+    "wireDots": "Pontilhado",
+    "truthTable": "Tabela Verdade",
+    "duplicate": "Duplicar",
+    "delete": "Deletar",
+    "shapeCircle": "Círculo",
+    "shapeSquare": "Quadrado",
+    "wireCurvedTitle": "Curvo",
+    "wireStraightTitle": "Reto",
+    "wireRemoteTitle": "Remoto",
+    "derivationType": "Derivação"
+  },
+  "commandLine": {
+    "placeholder": "Ex: ADD SW ou EDIT OR wzbf COLOR RED",
+    "submit": "Enviar"
+  },
+  "cli": {
+    "cmdAdd": {
+      "description": "Adiciona um objeto na tela. Ex: ADD OR 4 [300,350]"
+    },
+    "cmdEdit": {
+      "description": "Edita atributos de um objeto pelo ID. Ex: EDIT OR wzbf INPUTS 4"
+    },
+    "cmdDel": {
+      "description": "Deleta um objeto pelo ID. Ex: DEL OR wzbf"
+    },
+    "cmdSave": {
+      "description": "Faz download do projeto atual. Nome opcional. Ex: SAVE meucircuito"
+    },
+    "cmdLoad": {
+      "description": "Abre a janela de seleção para carregar um arquivo JSON. Ex: LOAD"
+    },
+    "errors": {
+      "unknownCommand": "Comando desconhecido: {cmd}",
+      "executionError": "Erro executando '{cmd}': {error}",
+      "addMissingType": "Falta o tipo do objeto. Ex: ADD AND",
+      "addInvalidType": "Objeto inválido ou desconhecido: {type}",
+      "editInsufficientArgs": "Argumentos insuficientes. Ex: EDIT OR wzbf INPUTS 4",
+      "editNotFound": "Objeto não encontrado: {type} com ID {id}",
+      "editInvalidInputValue": "Valor numérico inválido para inputs. Ex: EDIT OR wzbf INPUTS 4",
+      "editUnknownProperty": "Propriedade desconhecida: {prop}",
+      "editUnknownColor": "Cor não reconhecida: {color}",
+      "delInsufficientArgs": "Argumentos insuficientes. Ex: DEL OR wzbf",
+      "delNotFound": "Objeto não encontrado: {type} com ID {id}"
+    }
+  },
+  "components": {
+    "AND": { "description": "Saída Alta somente se todas as entradas forem Altas." },
+    "OR": { "description": "Saída Alta se qualquer entrada for Alta." },
+    "NOT": { "description": "Inverte o sinal de entrada." },
+    "NAND": { "description": "AND seguido de NOT." },
+    "NOR": { "description": "OR seguido de NOT." },
+    "XOR": { "description": "OU Exclusivo." },
+    "INPUT_SWITCH": { "description": "Chave de alternância para nível lógico Alto/Baixo." },
+    "OUTPUT_LAMP": { "description": "Indicador visual do estado do sinal." },
+    "CLOCK": { "description": "Alterna o sinal periodicamente." },
+    "DERIVATION": { "description": "Ponto de junção — propaga o estado de entrada para as saídas." }
+  },
+  "errors": {
+    "invalidFileFormat": "Formato de arquivo de projeto inválido.",
+    "failedToLoad": "Falha ao carregar o arquivo de projeto."
+  }
+}
