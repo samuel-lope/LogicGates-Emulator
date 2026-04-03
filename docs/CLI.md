@@ -27,9 +27,9 @@ Modifica atributos de uma peça específica instalada no circuito.
 Remove instantaneamente o objeto indicado pelo ID e corta todos os fios conectados a ele.
 - **Exemplo:** `DEL XOR wzbf`
 
-### `SAVE`
-Faz o download de um arquivo JSON contendo o estado atual do circuito. Mesma função do botão secundário de "Save".
-- **Exemplo:** `SAVE`
+### `SAVE [Nome?]`
+Faz o download de um arquivo JSON contendo o estado atual do circuito. Você pode fornecer um nome opcional para o arquivo.
+- **Exemplo:** `SAVE meu_circuito` (Gera `meu_circuito.json`).
 
 ### `LOAD`
 Abre uma janela no sistema operacional para selecionar e carregar um projeto em JSON, substituindo o circuito atual.

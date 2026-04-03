@@ -56,7 +56,12 @@ O simulador segue um pipeline "Model-View-Controller" fortemente adaptado para r
 - **Single Source of Truth:** Define o mapa centralizado de todos os componentes do sistema, suas variantes (`GateType`) e quais propriedades são editáveis (cor, inputs, forma, estilo).
 - **Consumo:** Utilizado pela engine da CLI para validar argumentos e pelo IntelliSense para sugerir parâmetros válidos dinamicamente.
 
-### 7. Configurações (`constants.ts` e `types.ts`)
+### 7. `locales/` (i18n System)
+- **Centralização:** Contém os arquivos JSON de tradução (`en.json`, `pt-BR.json`) e o motor de internacionalização (`index.ts`).
+- **useTranslation Hook:** Fornece acesso ao estado do idioma e à função `t(key)` para componentes React.
+- **Singleton `t()`:** Uma instância global disponível para serviços e classes externas ao React (como o `cliEngine.ts`).
+
+### 8. Configurações (`constants.ts` e `types.ts`)
 - `constants.ts`: Matriz visual do sistema. Contém a paleta de cores Dark Mode (Neon Green, #1e1e1e texturas), distâncias paramétricas de pinos (para portar expansão dinâmica de entradas) e catálogo `COMPONENT_CONFIGS`.
 - `types.ts`: Tipagem estrita de cada elemento do "Modelo" (Nodes, Wires statefuls, Modos de Interação).
 

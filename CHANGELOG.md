@@ -4,6 +4,16 @@ Recent updates to the **LogicGateSim_Web** digital circuit simulator.
 
 ---
 
+## [1.4.0] - 2026-04-03
+### Added
+- **Internationalization (i18n):** Multi-language support (English and Portuguese) with real-time switching.
+- **Language Provider:** Robust `I18nProvider` and `useTranslation` hook for component localization.
+- **UI Localization:** Fully localized Toolbar, Context Menu, Command Line, and component descriptions.
+
+### Changed
+- **CLI Save Command:** The `SAVE` command now accepts an optional filename parameter (e.g., `SAVE mycircuit`).
+- **CLI Feedback:** All CLI error messages and descriptions are now fully localized.
+
 ## [1.3.0] - 2026-04-01
 ### Added
 - **CLI Object Schema:** Centralized declarative mapping (`services/cli/objectSchema.ts`) that defines all configurable properties, types, and constraints for circuit objects.

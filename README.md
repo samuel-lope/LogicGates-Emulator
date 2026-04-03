@@ -11,6 +11,7 @@ Um simulador de circuitos digitais interativo de alta performance, construído i
 - **Interface de Linha de Comando (CLI):** Barra de ferramentas para adicionar, editar e deletar componentes sem remover as mãos do teclado.
 - **IntelliSense Customizado:** Autocomplete dinâmico que reconhece as peças que você criou na tela.
 - **Suporte IEEE:** Símbolos de portas lógicas baseados em padrões internacionais de engenharia.
+- **Internacionalização (i18n):** Suporte nativo a múltiplos idiomas (Português e Inglês) com troca dinâmica.
 
 ---
 
@@ -46,6 +47,7 @@ O simulador inclui uma barra de comandos na parte inferior (`>`). Experimente:
 | `ADD` | Adiciona novos componentes | `ADD OR 4` ou `ADD SW` |
 | `EDIT` | Altera propriedades via ID | `EDIT AND wzbf INPUTS 6` |
 | `DEL` | Remove peças do circuito | `DEL XOR k9pa` |
+| `SAVE` | Download do projeto (Nome opcional) | `SAVE meu_circuito` |
 
 Consulte o [Guia CLI Completo](./docs/CLI.md) para ver todos os aliases (`SW`, `LED`, `CLK`, `DER`).
 
